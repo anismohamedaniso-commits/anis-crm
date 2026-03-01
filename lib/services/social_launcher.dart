@@ -81,9 +81,13 @@ class SocialLauncher {
   }
 
   static String _normalizePhone(String raw) {
-    // Remove spaces, parentheses, dashes. Keep leading + if present.
-    final trimmed = raw.trim();
-    final keepPlus = trimmed.startsWith('+');
+    // Strip common prefixes (p:, t:) then remove non-digit chars. Keep + if present.
+    var trimmed = raw.trim();
+    // Remove prefix tags like "p:" or "t:" that may come from data imports
+    if (RegExp(r'^[a-zA-Z]:').hasMatch(trimmed)) {
+      trimmed = trimmed.substring(2);
+    }
+    final keepPlus = trimmed.contains('+');
     final digitsOnly = trimmed.replaceAll(RegExp(r'[^0-9]'), '');
     return keepPlus ? '+$digitsOnly' : digitsOnly;
   }

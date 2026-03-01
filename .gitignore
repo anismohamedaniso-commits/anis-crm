@@ -48,6 +48,10 @@ app.*.map.json
 .env
 *.env
 server/.venv/
+server/data/*.json
+server/logs/
+!server/data/.gitkeep
+!server/logs/.gitkeep
 
 # Android signing
 android/key.properties

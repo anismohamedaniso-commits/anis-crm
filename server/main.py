@@ -414,8 +414,9 @@ async def models(req: Request):
             r = await client.get(f"{OLLAMA_URL}/api/tags")
             r.raise_for_status()
             return JSONResponse(status_code=r.status_code, content=r.json())
-        except httpx.HTTPError as e:
-            raise HTTPException(status_code=500, detail=str(e))
+        except Exception:
+            # Ollama not available — return empty model list gracefully
+            return JSONResponse(content={"models": []})
 
 
 @app.post("/api/ai/chat")
@@ -502,8 +503,8 @@ async def chat(req: Request):
                 response_text = ''.join(parts)
 
             return Response(content=response_text, status_code=r.status_code, media_type='text/plain')
-        except httpx.HTTPError as e:
-            raise HTTPException(status_code=500, detail=str(e))
+        except Exception as e:
+            return JSONResponse(status_code=503, content={"error": "AI service unavailable", "detail": str(e)})
 
 
 @app.post("/api/ai/embeddings")
@@ -520,8 +521,8 @@ async def embeddings(req: Request):
             r = await client.post(f"{OLLAMA_URL}/api/embeddings", json=body)
             r.raise_for_status()
             return JSONResponse(status_code=r.status_code, content=r.json())
-        except httpx.HTTPError as e:
-            raise HTTPException(status_code=500, detail=str(e))
+        except Exception as e:
+            return JSONResponse(status_code=503, content={"error": "AI service unavailable", "detail": str(e)})
 
 
 @app.get('/api/health')
@@ -2324,7 +2325,7 @@ _WEB_DIR = Path(__file__).parent.parent / 'build' / 'web'
 @app.get('/{full_path:path}')
 async def serve_flutter(full_path: str):
     if not _WEB_DIR.exists():
-        return JSONResponse({'error': 'Web build not found. Run: flutter build web'}, status_code=404)
+        return JSONResponse({'error': 'Not found'}, status_code=404)
     target = _WEB_DIR / full_path
     _no_cache = {'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0'}
     if target.is_file():
