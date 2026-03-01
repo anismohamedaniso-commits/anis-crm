@@ -14,5 +14,5 @@ RUN mkdir -p data logs
 
 EXPOSE 8000
 
-# Use exec form with sh -c so $PORT is expanded by the shell at runtime
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port $PORT"]
+# Use Python to read PORT env var as integer — avoids all shell expansion issues
+CMD ["python", "-c", "import os,uvicorn; uvicorn.run('main:app', host='0.0.0.0', port=int(os.environ.get('PORT',8000)))"]
