@@ -3,9 +3,9 @@ import 'package:anis_crm/engine/templates_engine.dart';
 
 void main() {
   group('TemplatesEngine', () {
-    test('returns 5 categories', () {
+    test('returns 6 categories', () {
       final categories = TemplatesEngine.categories();
-      expect(categories.length, 5);
+      expect(categories.length, 6);
     });
 
     test('each category has id, title, and non-empty templates', () {
@@ -36,7 +36,7 @@ void main() {
     test('expected category ids are present', () {
       final categories = TemplatesEngine.categories();
       final ids = categories.map((c) => c.id).toSet();
-      expect(ids, containsAll(['price', 'timing', 'info', 'nudge', 'soft_close']));
+      expect(ids, containsAll(['price', 'timing', 'info', 'nudge', 'soft_close', 'corporate']));
     });
   });
 }
