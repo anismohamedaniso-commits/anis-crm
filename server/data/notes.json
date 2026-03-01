@@ -1,0 +1,1534 @@
+[
+  {
+    "id": "note_88c92772",
+    "lead_id": null,
+    "author": null,
+    "content": null,
+    "ts": "2026-02-10T10:51:58.411844Z"
+  },
+  {
+    "id": "note_90aa710e",
+    "lead_id": null,
+    "author": null,
+    "content": null,
+    "ts": "2026-02-10T10:53:09.368844Z"
+  },
+  {
+    "id": "note_fd875d23",
+    "lead_id": null,
+    "author": null,
+    "content": null,
+    "ts": "2026-02-10T10:53:21.101745Z"
+  },
+  {
+    "id": "bcb48e92-9440-40a4-a9c3-0f6476c478f6",
+    "lead_id": "3d6cd6a4-6ff2-4a91-a4e3-ac6067100307",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-11T13:53:20.687Z"
+  },
+  {
+    "id": "e132e95d-82f9-4edd-ac50-1c0d3e79c7bc",
+    "lead_id": "3d6cd6a4-6ff2-4a91-a4e3-ac6067100307",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-11T13:53:42.689Z"
+  },
+  {
+    "id": "f1a0b5bd-cb1f-48ed-bf9a-b0f4cde0176d",
+    "lead_id": "3d6cd6a4-6ff2-4a91-a4e3-ac6067100307",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T13:59:20.183Z"
+  },
+  {
+    "id": "e0a7fdb3-70e0-4620-8fd2-323108958e5e",
+    "lead_id": "3d6cd6a4-6ff2-4a91-a4e3-ac6067100307",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-11T14:00:20.627Z"
+  },
+  {
+    "id": "9b947402-6053-4456-b3e9-112c2e0a2181",
+    "lead_id": "2b0ec93e-705a-4bb2-b869-1a6908a5601d",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T14:01:08.081Z"
+  },
+  {
+    "id": "7af2c7ac-6d04-4635-8af0-afaab67f27a3",
+    "lead_id": "2b0ec93e-705a-4bb2-b869-1a6908a5601d",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-11T14:02:00.333Z"
+  },
+  {
+    "id": "e9cfce2c-54c7-4bca-b243-4fb8f8e0254a",
+    "lead_id": "339ce5a4-eb44-467f-a030-0e7b509a7c43",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T14:02:17.299Z"
+  },
+  {
+    "id": "d014da7e-47f0-4fbd-ac00-4a1677432593",
+    "lead_id": "62f14525-b4a3-40a4-a096-250227da871a",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T14:03:21.066Z"
+  },
+  {
+    "id": "3bcfff0f-b7ad-4a19-9059-3244fd4e1e18",
+    "lead_id": "04c895f2-0169-4f87-8c62-d14215a44acf",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T14:04:49.846Z"
+  },
+  {
+    "id": "8ac888a8-a209-49f7-bc17-ea839c337bd1",
+    "lead_id": "04c895f2-0169-4f87-8c62-d14215a44acf",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T14:05:02.615Z"
+  },
+  {
+    "id": "5963604c-2917-4881-89ba-626ca3d1c7da",
+    "lead_id": "d5b18fcf-ba9d-425d-b891-caaf5a84c99a",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T14:06:32.111Z"
+  },
+  {
+    "id": "822242f8-1b9c-4e9f-9d6d-2d883bd93014",
+    "lead_id": "d5b18fcf-ba9d-425d-b891-caaf5a84c99a",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-11T14:09:28.203Z"
+  },
+  {
+    "id": "016e0628-1d42-4313-8e8b-899c09aa57e3",
+    "lead_id": "898476e4-b817-49de-b146-da63dfca4d38",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T14:10:31.260Z"
+  },
+  {
+    "id": "ae3c1a87-70f0-4cab-80d3-63fd52eff66c",
+    "lead_id": "06d3762b-b049-464d-9ea9-757512e15f0b",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T14:12:14.682Z"
+  },
+  {
+    "id": "a2959b0f-8a00-4112-a663-bbba4d0cc209",
+    "lead_id": "5e5d5b18-4448-4d68-9aa5-a6ae4d2d5690",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T14:13:07.450Z"
+  },
+  {
+    "id": "d30628cf-5d19-4545-abca-d33a67ec8791",
+    "lead_id": "edb88009-b4c6-453b-91dd-f1028b0b9b5e",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T14:13:56.102Z"
+  },
+  {
+    "id": "10a9f639-7141-4e51-a80c-c3d8911a60c9",
+    "lead_id": "19b8f7a8-c068-4620-b79b-861255a2a938",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T14:15:14.188Z"
+  },
+  {
+    "id": "86a76b87-c6b6-41cd-809e-a1c47f03a601",
+    "lead_id": "19b8f7a8-c068-4620-b79b-861255a2a938",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-11T14:17:43.447Z"
+  },
+  {
+    "id": "641ac899-2029-4c3e-b129-539f0c83d38f",
+    "lead_id": "24aa30fd-9b28-4b44-8a0b-2c94e6bcda02",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T14:18:09.907Z"
+  },
+  {
+    "id": "0c3bcd4e-2dbe-4be4-93f1-6cf98914f590",
+    "lead_id": "ef701fc6-5872-4516-b2a2-0f2d485ac210",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T14:19:03.443Z"
+  },
+  {
+    "id": "9f636c95-16e6-4945-9b1e-0dc64117f9aa",
+    "lead_id": "ef701fc6-5872-4516-b2a2-0f2d485ac210",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-11T14:22:09.742Z"
+  },
+  {
+    "id": "8554c912-c34e-4802-b3f0-b87d17047d97",
+    "lead_id": "06d3762b-b049-464d-9ea9-757512e15f0b",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T14:23:17.285Z"
+  },
+  {
+    "id": "c83abf16-f20b-4818-ab0d-f40b24e37e9e",
+    "lead_id": "06d3762b-b049-464d-9ea9-757512e15f0b",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-11T14:29:12.188Z"
+  },
+  {
+    "id": "86ee30ff-4837-4bf0-b5c8-1decc95c0aef",
+    "lead_id": "d51b9501-16ca-4fcc-89cf-94f7deea53a0",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T15:22:12.872Z"
+  },
+  {
+    "id": "cd8af611-a8cb-407c-97e5-3bf37b491290",
+    "lead_id": "d51b9501-16ca-4fcc-89cf-94f7deea53a0",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-11T15:25:18.013Z"
+  },
+  {
+    "id": "2a61027d-7d63-4333-9cdc-87bdc077480d",
+    "lead_id": "b6d96d9e-0a0f-44c4-b7b2-79525c5617d9",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T15:25:56.195Z"
+  },
+  {
+    "id": "1f2e36c9-0bff-4c32-8930-75154bb609db",
+    "lead_id": "b6d96d9e-0a0f-44c4-b7b2-79525c5617d9",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-11T15:30:12.893Z"
+  },
+  {
+    "id": "6fac8f60-131d-4bbe-9206-46863c76fae3",
+    "lead_id": "b6d96d9e-0a0f-44c4-b7b2-79525c5617d9",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-11T15:31:56.283Z"
+  },
+  {
+    "id": "8657395b-51df-4528-9cf1-8e58002f690d",
+    "lead_id": "61642ae1-af94-4f9e-b7c4-7d3b1c3abaa6",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T15:32:59.091Z"
+  },
+  {
+    "id": "242eabf8-473c-4398-9485-81c101796999",
+    "lead_id": "098e1684-0425-4dfb-bf6d-014221d3b4ef",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T15:33:17.402Z"
+  },
+  {
+    "id": "2c859b4a-292e-4896-9608-8e2912692cf0",
+    "lead_id": "83545325-aa86-4721-aa0a-6ac169732930",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T15:34:09.598Z"
+  },
+  {
+    "id": "2c237e41-2e97-4cd9-9c8a-016c2206c275",
+    "lead_id": "83545325-aa86-4721-aa0a-6ac169732930",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-11T15:40:05.880Z"
+  },
+  {
+    "id": "bde7e6d6-2830-4644-963d-e470363506ac",
+    "lead_id": "e184f680-62a1-4332-b4d6-3ebc89e67e86",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T15:41:23.734Z"
+  },
+  {
+    "id": "1c4711ee-e2ef-40e6-9244-7afd80206cab",
+    "lead_id": "20117a28-fad7-45dd-b618-63175b229a4d",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T15:42:06.575Z"
+  },
+  {
+    "id": "4f58843e-ae45-450d-8e15-61bbd3028b7c",
+    "lead_id": "e23da579-d5a8-41e6-914f-9c99084cc60e",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T15:43:22.334Z"
+  },
+  {
+    "id": "92392f02-81b9-493c-9dcc-ff143d576f29",
+    "lead_id": "2a4e0cf3-a34f-49d2-b65c-279e89356623",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T15:52:36.441Z"
+  },
+  {
+    "id": "2b1f7012-1ddc-48fb-a7f1-28075ac31afd",
+    "lead_id": "2a4e0cf3-a34f-49d2-b65c-279e89356623",
+    "author": "User",
+    "type": "note",
+    "content": "He Said I am \"IN\" after Ramadan",
+    "ts": "2026-02-11T16:02:07.033Z"
+  },
+  {
+    "id": "ad59dba6-c838-4cdc-823e-737f8d4093d0",
+    "lead_id": "2a4e0cf3-a34f-49d2-b65c-279e89356623",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-11T16:02:17.957Z"
+  },
+  {
+    "id": "4207aeb8-1bc5-4906-887b-211bf0336e3d",
+    "lead_id": "24aa30fd-9b28-4b44-8a0b-2c94e6bcda02",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T16:03:13.162Z"
+  },
+  {
+    "id": "da3762c6-fe28-4d4a-981a-11c9bc75c0ec",
+    "lead_id": "049f4230-eaf5-4df6-9438-ebff6aa778e6",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T16:04:13.279Z"
+  },
+  {
+    "id": "dad1c1d6-c44a-49f6-8a64-45750ed3f8b8",
+    "lead_id": "5e5d5b18-4448-4d68-9aa5-a6ae4d2d5690",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T16:05:38.891Z"
+  },
+  {
+    "id": "7411d433-73ef-4407-b957-17ada34ca124",
+    "lead_id": "5e5d5b18-4448-4d68-9aa5-a6ae4d2d5690",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-11T16:06:25.590Z"
+  },
+  {
+    "id": "4ef52dad-73e3-426e-83f4-11b10f12e8a8",
+    "lead_id": "03340d0f-9535-4c5e-b44f-adc7a53f97fa",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T16:07:43.088Z"
+  },
+  {
+    "id": "475c9bcb-d995-4d96-99f1-42e55fe0a350",
+    "lead_id": "03340d0f-9535-4c5e-b44f-adc7a53f97fa",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-11T16:15:16.468Z"
+  },
+  {
+    "id": "35d0361d-7ac3-4705-81da-5c0f01ebfa89",
+    "lead_id": "03340d0f-9535-4c5e-b44f-adc7a53f97fa",
+    "author": "User",
+    "type": "note",
+    "content": "She wants to subscribe after 15 days",
+    "ts": "2026-02-11T16:16:02.661Z"
+  },
+  {
+    "id": "84c911b1-2fb9-44da-9fbe-b348b293738d",
+    "lead_id": "03340d0f-9535-4c5e-b44f-adc7a53f97fa",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-11T16:16:14.610Z"
+  },
+  {
+    "id": "e3f64011-0e6e-4bda-933d-a85db978fbea",
+    "lead_id": "7050c63c-01b1-42f8-a852-b90351bac877",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T16:18:59.697Z"
+  },
+  {
+    "id": "0b29e68b-b7aa-4b61-a063-0478e78288fa",
+    "lead_id": "bfbe9add-19f3-468f-99ee-b07444f59267",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T16:21:57.534Z"
+  },
+  {
+    "id": "8dc50ac7-afba-4c02-90c1-2e7bab25864f",
+    "lead_id": "bfbe9add-19f3-468f-99ee-b07444f59267",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-11T16:22:57.113Z"
+  },
+  {
+    "id": "073ec39a-1dbb-472c-8b3a-ca5ccd0496e0",
+    "lead_id": "b5cd98ec-9737-4386-9a47-3e7b61f2f2e7",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T16:23:17.658Z"
+  },
+  {
+    "id": "f2b45d4c-3d30-4f56-b05d-87b864fdeff0",
+    "lead_id": "c081cee6-8c01-4b1b-9670-1fc87a308e9b",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T16:24:44.655Z"
+  },
+  {
+    "id": "07d89aa5-ff53-45ae-b18d-d80544961d74",
+    "lead_id": "1fc6039f-6f7f-446b-ba6c-994c33186cb9",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T16:26:16.548Z"
+  },
+  {
+    "id": "5b00a046-fea9-4fcb-a814-9e80e8ef9cc4",
+    "lead_id": "8e94e755-1d83-48c2-8c17-60b22ad5e8b8",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T16:27:19.097Z"
+  },
+  {
+    "id": "f26cca55-8172-452a-8976-b8de1d8cf6fb",
+    "lead_id": "8e94e755-1d83-48c2-8c17-60b22ad5e8b8",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T16:27:26.373Z"
+  },
+  {
+    "id": "d764a3b8-e96c-43df-9cd1-d23ed2e9c16a",
+    "lead_id": "8e94e755-1d83-48c2-8c17-60b22ad5e8b8",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-11T16:27:30.572Z"
+  },
+  {
+    "id": "f1b9dcee-77c4-4e09-b8eb-a630f4cac445",
+    "lead_id": "1fc6039f-6f7f-446b-ba6c-994c33186cb9",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-11T16:37:40.767Z"
+  },
+  {
+    "id": "abd04a94-18c0-49ff-97e3-5d5c4364d11c",
+    "lead_id": "37124646-4783-4680-b20e-38babd71c01c",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-12T14:26:55.764Z"
+  },
+  {
+    "id": "dc1749a5-aafb-414f-938c-3a397af2a25f",
+    "lead_id": "37124646-4783-4680-b20e-38babd71c01c",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-12T14:27:26.617Z"
+  },
+  {
+    "id": "1fb31d8f-d9a3-451c-8949-c20aee9b3972",
+    "lead_id": "37124646-4783-4680-b20e-38babd71c01c",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-12T14:27:42.224Z"
+  },
+  {
+    "id": "0a0f09e0-31d0-4753-9658-08e0a27dc749",
+    "lead_id": "37124646-4783-4680-b20e-38babd71c01c",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-12T14:29:08.756Z"
+  },
+  {
+    "id": "6e39d9d8-1b36-4cc0-81cc-364833cb824b",
+    "lead_id": "98b7380a-a208-42a4-96f2-d4fa178e17ca",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-12T14:30:12.003Z"
+  },
+  {
+    "id": "052bf2e5-bf3e-4a0a-9ed8-30cf1edd1654",
+    "lead_id": "98b7380a-a208-42a4-96f2-d4fa178e17ca",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-12T14:34:22.850Z"
+  },
+  {
+    "id": "6508c94e-0769-4eee-8f40-f4610cabf104",
+    "lead_id": "106c2a82-3961-4b55-83d3-9f58f831c15a",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-12T14:37:06.029Z"
+  },
+  {
+    "id": "8ec1ac9e-fbfe-4f74-b838-512b6c0539bd",
+    "lead_id": "106c2a82-3961-4b55-83d3-9f58f831c15a",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-12T14:43:24.325Z"
+  },
+  {
+    "id": "6efe180e-3133-4ab7-be8a-1ee73841736c",
+    "lead_id": "e0506b9d-907c-408f-afac-a5d154dc8fe3",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-12T15:07:16.604Z"
+  },
+  {
+    "id": "719e92f7-2b98-4174-9c3f-d6d15f85072c",
+    "lead_id": "c9cecf92-c48c-48e1-866c-14c16631aeab",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-12T15:08:33.577Z"
+  },
+  {
+    "id": "a4860165-7fc5-44c4-86b7-f511a91f0553",
+    "lead_id": "c9cecf92-c48c-48e1-866c-14c16631aeab",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-12T15:14:52.169Z"
+  },
+  {
+    "id": "ed49de42-d93f-4081-9d89-c5db1a8078b9",
+    "lead_id": "d8e49af6-961f-4dc6-9ac3-51fa87e37131",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-12T15:16:47.398Z"
+  },
+  {
+    "id": "e6fa4f5e-6f1a-4159-b14a-5477bb885c92",
+    "lead_id": "d8e49af6-961f-4dc6-9ac3-51fa87e37131",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-12T15:19:39.338Z"
+  },
+  {
+    "id": "f84641a3-372a-4830-9622-13ae539d6248",
+    "lead_id": "6ddec8d0-459b-4ee7-8ce0-ecceaf0d77c9",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-12T15:20:37.898Z"
+  },
+  {
+    "id": "838866f4-7dab-43bf-a73f-fb6894244680",
+    "lead_id": "6ddec8d0-459b-4ee7-8ce0-ecceaf0d77c9",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-12T15:24:16.906Z"
+  },
+  {
+    "id": "92a1a5af-a3a5-45d1-aabc-7f657630ea75",
+    "lead_id": "127783a2-1473-4692-8c52-8613d3cd45d1",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-12T15:24:49.725Z"
+  },
+  {
+    "id": "1c433d8d-332d-47e5-8f52-1585b8206fb3",
+    "lead_id": "127783a2-1473-4692-8c52-8613d3cd45d1",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-12T15:37:45.273Z"
+  },
+  {
+    "id": "df04f5e9-6fc5-46f9-87fe-a3cf2cd20c69",
+    "lead_id": "f70c75c2-6136-45fa-8af8-455707e2042a",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-12T15:41:39.027Z"
+  },
+  {
+    "id": "1a463f53-a291-4ee7-8a8b-9cb8cf57a91c",
+    "lead_id": "84e95004-5974-4592-a25a-2e0091f06f41",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-12T15:42:12.041Z"
+  },
+  {
+    "id": "b9c7e9ce-41d9-48c9-9473-80d8f8ec0c10",
+    "lead_id": "84e95004-5974-4592-a25a-2e0091f06f41",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-12T15:48:04.342Z"
+  },
+  {
+    "id": "07f84726-dc5e-4b58-b675-2de171708479",
+    "lead_id": "ba28143b-b2a9-4349-8712-593987ccc60f",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-12T15:53:08.294Z"
+  },
+  {
+    "id": "eb12b687-cab3-4da9-af1c-a8f935135589",
+    "lead_id": "60b32ba9-1026-421d-9aab-770843832724",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-12T15:54:02.267Z"
+  },
+  {
+    "id": "4f2d45f4-bba2-49eb-9432-4fa5f9b34ffb",
+    "lead_id": "60b32ba9-1026-421d-9aab-770843832724",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-12T15:58:06.550Z"
+  },
+  {
+    "id": "576eadb0-b998-483b-b633-936acfcc687f",
+    "lead_id": "60b32ba9-1026-421d-9aab-770843832724",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-12T16:04:27.363Z"
+  },
+  {
+    "id": "6e977983-6b45-4e13-a894-51cd5513e467",
+    "lead_id": "60b32ba9-1026-421d-9aab-770843832724",
+    "author": "User",
+    "type": "followup",
+    "content": "Follow-up scheduled for 02/14 6:00pm",
+    "ts": "2026-02-12T16:09:27.493Z"
+  },
+  {
+    "id": "40e18a63-c502-4758-b2b1-18d0dcefd27f",
+    "lead_id": "753095d0-1679-474a-96ff-1225d4dcd4da",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T12:35:33.771Z"
+  },
+  {
+    "id": "cf2654f0-f254-4334-908a-d42520280aa9",
+    "lead_id": "753095d0-1679-474a-96ff-1225d4dcd4da",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T12:36:33.485Z"
+  },
+  {
+    "id": "82d97ea4-bbc9-442d-b440-c573a26a8c09",
+    "lead_id": "4fb400d7-b7ec-4875-b680-7695483ebfb8",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T12:44:49.279Z"
+  },
+  {
+    "id": "c00ec445-1ad3-4fec-a2b4-83799081584f",
+    "lead_id": "6c55555d-d731-4821-bd74-2f28ef768c7a",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T12:45:06.517Z"
+  },
+  {
+    "id": "966692bd-a529-477d-8d36-a02388810173",
+    "lead_id": "30c625aa-f786-430a-96b5-41c1ea0a1090",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T13:06:32.335Z"
+  },
+  {
+    "id": "0e113b79-32c8-473c-9c51-17ddc4e0cfff",
+    "lead_id": "30c625aa-f786-430a-96b5-41c1ea0a1090",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T13:06:57.079Z"
+  },
+  {
+    "id": "28857355-9f60-406a-b028-7afee8c51551",
+    "lead_id": "30c625aa-f786-430a-96b5-41c1ea0a1090",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T13:07:36.925Z"
+  },
+  {
+    "id": "99beb123-34d3-4deb-a2ea-90b85630b1a6",
+    "lead_id": "30c625aa-f786-430a-96b5-41c1ea0a1090",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T13:07:57.796Z"
+  },
+  {
+    "id": "46395d84-f3f5-430f-96d2-4c00aa4965a5",
+    "lead_id": "e5b77607-e24f-4be7-ac6e-0b4974ba11d5",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T13:08:42.469Z"
+  },
+  {
+    "id": "aa6b8a55-d427-4a23-a463-82caa3d73016",
+    "lead_id": "e5b77607-e24f-4be7-ac6e-0b4974ba11d5",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T13:08:47.962Z"
+  },
+  {
+    "id": "3e889144-354d-4742-9045-f1efdc840feb",
+    "lead_id": "3c5ba9c0-9d4c-4e00-a7ce-df9ac606d5f2",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T13:09:00.896Z"
+  },
+  {
+    "id": "9c7b1d2b-1323-450f-acae-7767fff828f5",
+    "lead_id": "115232b1-29bd-4edd-a656-4b1c7768f9ee",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T13:10:12.278Z"
+  },
+  {
+    "id": "2ceaf55b-9840-4b82-81ad-0c3a6853a54a",
+    "lead_id": "115232b1-29bd-4edd-a656-4b1c7768f9ee",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T13:11:04.254Z"
+  },
+  {
+    "id": "2513df80-563d-4308-9425-00dd85042431",
+    "lead_id": "3cd504f6-b319-42b1-8d05-9c2a99aa7545",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T13:14:20.617Z"
+  },
+  {
+    "id": "8d5ae2ea-1644-49bc-a97a-83769f21f1d1",
+    "lead_id": "25322528-2271-4499-a9c1-ce6132ee48ca",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T13:15:15.763Z"
+  },
+  {
+    "id": "05a65510-4223-4b71-a8fe-79a88f045443",
+    "lead_id": "4767fbf6-62e5-4038-9ef1-d771869e4850",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T13:15:35.597Z"
+  },
+  {
+    "id": "3ab52b83-60f9-424c-a452-53e6c710fd36",
+    "lead_id": "4767fbf6-62e5-4038-9ef1-d771869e4850",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T13:16:50.265Z"
+  },
+  {
+    "id": "1f13a521-130d-4268-ac19-007466e651ba",
+    "lead_id": "99c5b545-e17e-4f5c-b4f9-03cbe12e2484",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T13:18:19.249Z"
+  },
+  {
+    "id": "328c414a-4caa-4cf1-b162-5eee72feeb29",
+    "lead_id": "e9b4c647-e45b-4ab3-bbb7-ace295bce860",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T13:22:34.059Z"
+  },
+  {
+    "id": "595afe1b-335d-42a3-ac86-ea5132ed3a7a",
+    "lead_id": "ead61198-7be4-4ea1-9271-030298e7665a",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T13:24:32.916Z"
+  },
+  {
+    "id": "6507180e-5aba-4654-8c9a-22a3c77613c5",
+    "lead_id": "ead61198-7be4-4ea1-9271-030298e7665a",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T13:25:30.108Z"
+  },
+  {
+    "id": "dc8ee5a4-9428-4170-a8d6-9856e424a522",
+    "lead_id": "96cfefef-e6ac-423a-b80f-a671afa2306d",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T13:26:14.379Z"
+  },
+  {
+    "id": "61f9cd0e-7416-4504-b7ab-ca6d31fdfe35",
+    "lead_id": "7bf7e365-4f69-43a5-9dc4-cefba161642d",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T13:27:14.859Z"
+  },
+  {
+    "id": "8301a7b6-2989-459c-b6b0-f735516ab904",
+    "lead_id": "e10e7a29-20c9-4c11-afa4-0b0fd88e6510",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T13:28:21.333Z"
+  },
+  {
+    "id": "8e13fc55-697b-47ee-b8a3-47d3940bd698",
+    "lead_id": "0ef8b94e-4ace-4a9b-a0b9-afe02f6b53f7",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T13:29:20.553Z"
+  },
+  {
+    "id": "7ccdac3b-38fd-4973-99ed-22640d73f6a2",
+    "lead_id": "0ef8b94e-4ace-4a9b-a0b9-afe02f6b53f7",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T13:33:26.938Z"
+  },
+  {
+    "id": "cedcbab5-af44-4f5c-a7c1-a5466ee7a591",
+    "lead_id": "ff16a05f-de2d-47b0-9d2e-a2d8bd252090",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T13:34:39.344Z"
+  },
+  {
+    "id": "335d3235-e76b-40d7-8ebf-81799cc4bace",
+    "lead_id": "ff16a05f-de2d-47b0-9d2e-a2d8bd252090",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T13:39:52.363Z"
+  },
+  {
+    "id": "b22a5c3c-208a-47da-a944-ff94cc27b332",
+    "lead_id": "99bd1a47-f4dd-490a-b22c-70c4e61a09e9",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T13:42:13.532Z"
+  },
+  {
+    "id": "ec1a4533-cc9e-41c7-9359-3724b5a08ce3",
+    "lead_id": "99bd1a47-f4dd-490a-b22c-70c4e61a09e9",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T13:43:06.997Z"
+  },
+  {
+    "id": "a8c4e519-47a5-40f4-87c0-a440ba7f95a3",
+    "lead_id": "167fa7be-e739-4cdb-aff6-f6e906f073d3",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T13:47:25.832Z"
+  },
+  {
+    "id": "e29071ca-b672-4af5-aef2-640767792f99",
+    "lead_id": "167fa7be-e739-4cdb-aff6-f6e906f073d3",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T13:48:10.507Z"
+  },
+  {
+    "id": "58e01b83-d3be-43c7-9e84-55167062fee1",
+    "lead_id": "f57525fb-1013-41d5-b9a0-9a6c3054e85a",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T14:05:45.515Z"
+  },
+  {
+    "id": "32dba10b-8d49-4e6a-a939-e3d373ab372a",
+    "lead_id": "f57525fb-1013-41d5-b9a0-9a6c3054e85a",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T14:07:04.999Z"
+  },
+  {
+    "id": "22c568e8-97d6-4a23-a0ed-f352509336c0",
+    "lead_id": "8a8f43fc-d7bc-4c38-9247-bc6a21e18259",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T14:07:45.080Z"
+  },
+  {
+    "id": "4a6aa713-f2b5-4004-95bf-ed66fdec7794",
+    "lead_id": "8a8f43fc-d7bc-4c38-9247-bc6a21e18259",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T14:11:13.790Z"
+  },
+  {
+    "id": "7faa190c-dc29-42bc-9c42-bd69c4bb5d6b",
+    "lead_id": "8a8f43fc-d7bc-4c38-9247-bc6a21e18259",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T14:11:22.364Z"
+  },
+  {
+    "id": "8cf0229f-9882-4800-a53f-fcd65a62284e",
+    "lead_id": "1df748ab-2b6d-4142-9396-3cb805143f16",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T14:12:10.375Z"
+  },
+  {
+    "id": "490927c7-d67d-4c04-bd24-eb0995cbaac4",
+    "lead_id": "1df748ab-2b6d-4142-9396-3cb805143f16",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T14:13:21.500Z"
+  },
+  {
+    "id": "b0360c46-564d-43f1-a60b-dd333824898d",
+    "lead_id": "eb7b75f9-6fb7-4636-b533-39b20faa8826",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T14:13:48.720Z"
+  },
+  {
+    "id": "9f679bdb-70e1-4a2e-8760-a3ee5da481e4",
+    "lead_id": "930c73c9-20b9-46ec-ba75-fc34919dbe33",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T14:15:40.775Z"
+  },
+  {
+    "id": "4bbd5474-a799-4eec-9731-a2e07fbae906",
+    "lead_id": "3e024525-1937-473a-b543-cd5889f37dcd",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T14:16:30.334Z"
+  },
+  {
+    "id": "fbf6713a-544a-452f-a8e5-a586d2405e2b",
+    "lead_id": "b73149b6-7989-4ed4-b59d-4a7185755845",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T14:19:42.246Z"
+  },
+  {
+    "id": "0d7f27c9-fe86-406d-8ebe-b82953d79bcc",
+    "lead_id": "ddf5386d-8e37-4873-9e0d-2bb24e31db08",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T14:34:38.415Z"
+  },
+  {
+    "id": "ea0cb187-8be0-49c1-a99c-1308773184db",
+    "lead_id": "e0043c7b-536c-4515-b6ba-42abb542d68f",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T14:36:14.730Z"
+  },
+  {
+    "id": "6ff778d9-d176-4d1d-82fc-b122448cf6fb",
+    "lead_id": "e0043c7b-536c-4515-b6ba-42abb542d68f",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T14:37:31.679Z"
+  },
+  {
+    "id": "304d7928-1d37-43d4-8089-c88d92408089",
+    "lead_id": "f11ee987-a119-489b-8e1f-b440450c757d",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T14:40:14.990Z"
+  },
+  {
+    "id": "3dcf6bca-dcfa-4243-8810-8e2b47233c5f",
+    "lead_id": "f11ee987-a119-489b-8e1f-b440450c757d",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T14:41:01.943Z"
+  },
+  {
+    "id": "9a67b0a8-591d-4ae9-800e-290da7998fda",
+    "lead_id": "fc8d4fab-3449-4846-9c5d-2ab893c98863",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T14:41:45.932Z"
+  },
+  {
+    "id": "f5220d40-c7fb-46f2-bf2e-3c807261fa15",
+    "lead_id": "cf5670bc-bab2-4709-b747-095be85cf4fd",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T14:42:09.640Z"
+  },
+  {
+    "id": "4cdf9aa8-c363-4693-b5d9-d8479ad7f0c5",
+    "lead_id": "4ef54b28-8207-4188-aac6-f7f70961785d",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T14:42:27.198Z"
+  },
+  {
+    "id": "8bf1ef71-a849-48dd-809d-49a6ff2d60bc",
+    "lead_id": "4ef54b28-8207-4188-aac6-f7f70961785d",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T14:50:09.465Z"
+  },
+  {
+    "id": "4dcc8799-80c7-4ff7-8718-9f3545473440",
+    "lead_id": "49fc3f4f-01eb-4a82-85d7-e3783c83c0b3",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T14:55:30.927Z"
+  },
+  {
+    "id": "413c40ba-36e2-4f80-9322-a8fafb4cf015",
+    "lead_id": "49fc3f4f-01eb-4a82-85d7-e3783c83c0b3",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T14:56:37.669Z"
+  },
+  {
+    "id": "f8af3ada-49c0-42f8-974e-13dcb58f6d6a",
+    "lead_id": "60b32ba9-1026-421d-9aab-770843832724",
+    "author": "User",
+    "type": "note",
+    "content": "call today at 8 pm",
+    "ts": "2026-02-15T15:12:58.226Z"
+  },
+  {
+    "id": "34e21c59-a520-4ffe-acff-99dd1f6318a6",
+    "lead_id": "60b32ba9-1026-421d-9aab-770843832724",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T17:45:54.260Z"
+  },
+  {
+    "id": "8e3ffa69-2cba-4f93-adf7-3b0125758b2d",
+    "lead_id": "60b32ba9-1026-421d-9aab-770843832724",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T17:46:47.145Z"
+  },
+  {
+    "id": "40f6364f-4b42-4764-950e-7f6f898fb8c3",
+    "lead_id": "60b32ba9-1026-421d-9aab-770843832724",
+    "author": "User",
+    "type": "note",
+    "content": "wednesday before ramadan",
+    "ts": "2026-02-15T17:49:08.370Z"
+  },
+  {
+    "id": "f4163bbc-4a17-4ccc-9c4e-0ad82aab7fe6",
+    "lead_id": "2c65edd6-74b2-4451-bfc1-6154726d57e2",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T17:49:57.656Z"
+  },
+  {
+    "id": "5585b42e-9a74-493b-aec4-ad2bd48c4cf1",
+    "lead_id": "2c65edd6-74b2-4451-bfc1-6154726d57e2",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T17:50:56.900Z"
+  },
+  {
+    "id": "e9b285b0-23a7-4b5f-aedf-e9df2c690c57",
+    "lead_id": "9bdf6fb7-57fa-4bce-ad28-fce49bd6ca87",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T17:51:23.391Z"
+  },
+  {
+    "id": "e4f193b4-20de-429e-b30b-58414c918596",
+    "lead_id": "9bdf6fb7-57fa-4bce-ad28-fce49bd6ca87",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T17:52:15.411Z"
+  },
+  {
+    "id": "23299183-27ca-4133-895f-561ae98515d1",
+    "lead_id": "40ba9620-4b69-4587-ba42-9be16ad99d96",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T17:52:54.089Z"
+  },
+  {
+    "id": "4b6b7597-d6b5-4d9e-98f2-9f6edcc22e5c",
+    "lead_id": "40ba9620-4b69-4587-ba42-9be16ad99d96",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T17:53:35.157Z"
+  },
+  {
+    "id": "a9df6fee-679f-4616-a9a9-2ccfaaff78cc",
+    "lead_id": "761342ca-6532-49ab-b0e0-b60617a162d1",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T17:54:04.930Z"
+  },
+  {
+    "id": "bf8fdb5c-2e9d-4c57-9feb-dbbe3ace7a1b",
+    "lead_id": "761342ca-6532-49ab-b0e0-b60617a162d1",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T17:54:53.648Z"
+  },
+  {
+    "id": "81f5fb76-ea31-4b77-a599-1c1cef2a2b45",
+    "lead_id": "8fde9657-405e-47c9-a269-523322a9a560",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T17:55:15.699Z"
+  },
+  {
+    "id": "b49986af-438c-4553-80a3-f56db91a1ad7",
+    "lead_id": "8fde9657-405e-47c9-a269-523322a9a560",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T17:57:38.665Z"
+  },
+  {
+    "id": "1db02710-e968-4cda-92aa-ba1f4349b2b4",
+    "lead_id": "40f5a2ba-15be-43c5-93a5-696ae00039ed",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T17:58:09.797Z"
+  },
+  {
+    "id": "d4b9ca31-ce0e-4e3c-9ebe-252a2eceee85",
+    "lead_id": "82f622a7-f400-4146-acd2-db7cf00ddbb5",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T17:59:18.767Z"
+  },
+  {
+    "id": "05827f0c-9d54-43bc-90ed-52bb397e922b",
+    "lead_id": "82f622a7-f400-4146-acd2-db7cf00ddbb5",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T18:00:18.807Z"
+  },
+  {
+    "id": "c8825af6-4154-4a3a-92c6-a9ae0741010b",
+    "lead_id": "e8f894ec-9994-4784-bacf-eaaff26e3994",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T18:01:50.096Z"
+  },
+  {
+    "id": "1bec46a9-a92a-4a55-99d4-c24189506216",
+    "lead_id": "e8f894ec-9994-4784-bacf-eaaff26e3994",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T18:03:02.042Z"
+  },
+  {
+    "id": "703ad4fc-cb73-4e97-9182-066c91b0aa40",
+    "lead_id": "7ade5a85-53c4-4c3e-86cd-ea4352c6b5c2",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T18:03:27.773Z"
+  },
+  {
+    "id": "4f8905b3-4a99-4809-af3f-83c8cf73f970",
+    "lead_id": "62603bd1-a06e-42f5-bf0c-2f92edc24265",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T18:04:03.209Z"
+  },
+  {
+    "id": "c5cb065f-fcd5-4c9a-9bc5-2e93e35f4e19",
+    "lead_id": "28115c67-28d3-4bc1-9140-de52f912cefc",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T18:05:05.508Z"
+  },
+  {
+    "id": "cb5ca457-28ed-488a-942c-25c03d536659",
+    "lead_id": "51096994-7a36-472e-bd11-d0f0e1ecc444",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T18:06:39.345Z"
+  },
+  {
+    "id": "36183643-a65a-4813-971c-949d41ad564f",
+    "lead_id": "51096994-7a36-472e-bd11-d0f0e1ecc444",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T18:07:26.637Z"
+  },
+  {
+    "id": "31f3bea9-273c-439f-9c13-901f51532b5c",
+    "lead_id": "532073e2-98fa-4f76-8dca-9fd1ea552ff6",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T18:08:02.295Z"
+  },
+  {
+    "id": "30c8a538-014c-4e3d-b225-d08bafbb9e21",
+    "lead_id": "7f27e6ef-cd94-4fc4-99b8-ea3babf9702b",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T18:09:02.223Z"
+  },
+  {
+    "id": "22a4cdbd-c4c4-45db-8c94-47db05485867",
+    "lead_id": "7f27e6ef-cd94-4fc4-99b8-ea3babf9702b",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T18:10:07.771Z"
+  },
+  {
+    "id": "51e9e239-1b5f-4048-aa8e-a54d6b256762",
+    "lead_id": "3cc512f6-f758-4cf5-89b2-ea118720c346",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T18:10:37.103Z"
+  },
+  {
+    "id": "0f2383ee-5baa-41e3-bd59-1ca38c07eeea",
+    "lead_id": "3cc512f6-f758-4cf5-89b2-ea118720c346",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T18:11:38.472Z"
+  },
+  {
+    "id": "b80eea6e-bc1d-4029-aa15-51997d321401",
+    "lead_id": "b498fd9e-0862-440c-a70e-6ac43ba2af79",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T18:12:53.381Z"
+  },
+  {
+    "id": "e5427e2b-e4d8-4ca6-a9c2-c2103d8cc788",
+    "lead_id": "b498fd9e-0862-440c-a70e-6ac43ba2af79",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T18:13:29.713Z"
+  },
+  {
+    "id": "e9410b2d-e23c-4929-b0ce-92c99424257b",
+    "lead_id": "c1e674f9-2bbd-46ce-8874-9880d0a1e5a8",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T18:14:07.670Z"
+  },
+  {
+    "id": "91f535b6-658a-4621-82ef-cfa218e8839e",
+    "lead_id": "567eebaf-3181-4859-be53-25a396ad039a",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T18:16:10.645Z"
+  },
+  {
+    "id": "0800f168-410b-4a5d-8e1b-ffad34d6355a",
+    "lead_id": "567eebaf-3181-4859-be53-25a396ad039a",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T18:16:59.623Z"
+  },
+  {
+    "id": "ff07ebf7-bf2c-4330-8c9a-810983cc4e24",
+    "lead_id": "344f47fd-bdc9-4b75-bee3-96f5fd524002",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T18:17:30.992Z"
+  },
+  {
+    "id": "ce3d5384-15b3-4cf1-b209-fcd3c45d4852",
+    "lead_id": "344f47fd-bdc9-4b75-bee3-96f5fd524002",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T18:18:28.060Z"
+  },
+  {
+    "id": "b03745a8-a363-4024-8f99-cdd4061c598c",
+    "lead_id": "9f3f22a7-5b20-48f9-9f65-cfcd399ad740",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T18:18:51.088Z"
+  },
+  {
+    "id": "3a034f22-2892-4a7c-90cc-341bc487932c",
+    "lead_id": "bbd56d97-79ff-4344-a273-42ead3219c0a",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T18:19:48.215Z"
+  },
+  {
+    "id": "251cd2aa-d9a2-409c-b3cf-046d32fffe1c",
+    "lead_id": "026aeb5b-9223-4fbd-be9b-60eecffe82bc",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T18:20:45.112Z"
+  },
+  {
+    "id": "2dc03492-0bf4-4aa2-8abb-051254011c85",
+    "lead_id": "592ad5bd-584d-4a00-bacc-0e5dc872be86",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T18:21:48.146Z"
+  },
+  {
+    "id": "9e39d6c0-e5d6-4e26-908d-d0c8b77357c2",
+    "lead_id": "6c17c268-96d8-4a64-9202-6e7f4ed7fc91",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T18:22:20.827Z"
+  },
+  {
+    "id": "64ad0c75-4ae0-45a8-8427-28045956edc5",
+    "lead_id": "9811e506-1ebc-4d5a-b490-b28fd08a068d",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T18:23:16.672Z"
+  },
+  {
+    "id": "da9acc34-de53-4986-9622-044090924b1a",
+    "lead_id": "9811e506-1ebc-4d5a-b490-b28fd08a068d",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T18:23:55.690Z"
+  },
+  {
+    "id": "1d18afd8-94f9-46c0-a3c4-0b6351f42857",
+    "lead_id": "42ef5744-34e6-4dd1-a3e6-8f2fc080804b",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T18:24:31.826Z"
+  },
+  {
+    "id": "b363263b-dbed-47c3-b21c-7f733dba348c",
+    "lead_id": "137a7833-4b5d-49c1-8e78-3aa6310e615f",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T18:25:10.259Z"
+  },
+  {
+    "id": "d2454af9-da76-4af6-8a3b-2c456e9fc518",
+    "lead_id": "c6b4760f-9319-41e3-9bb2-8df7f9a84d79",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T18:26:07.608Z"
+  },
+  {
+    "id": "f7a8a714-2f4d-49f1-8a34-3ba987f6a55d",
+    "lead_id": "f776c350-d875-4e00-b773-e1919e8c9d48",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T18:28:05.754Z"
+  },
+  {
+    "id": "1a8f5621-5d76-4cb0-ba1b-3adb4e2c2657",
+    "lead_id": "463644a6-9481-4cb6-b742-f1155ea7ee52",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T18:29:00.188Z"
+  },
+  {
+    "id": "d1185dc1-ef9e-4ada-b037-614ab2b8c744",
+    "lead_id": "137a7833-4b5d-49c1-8e78-3aa6310e615f",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T18:40:21.373Z"
+  },
+  {
+    "id": "d22acff5-4d6f-4661-968e-d392d64e0f0c",
+    "lead_id": "04e0bd6a-2c79-4a91-b6ee-2bc11b0e9067",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T18:41:19.169Z"
+  },
+  {
+    "id": "a16c763f-d979-457b-9c59-846e1f6bc726",
+    "lead_id": "04e0bd6a-2c79-4a91-b6ee-2bc11b0e9067",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T18:42:14.603Z"
+  },
+  {
+    "id": "cdc2fe61-e801-40e4-9941-f3d76e20ac2f",
+    "lead_id": "97d030ec-5da5-4ccf-ae07-ce7b7b04eb62",
+    "author": "User",
+    "type": "call",
+    "content": "Phone call launched",
+    "ts": "2026-02-15T18:42:47.991Z"
+  },
+  {
+    "id": "0c2be525-e78f-47c5-9f40-27c4c80c1620",
+    "lead_id": "97d030ec-5da5-4ccf-ae07-ce7b7b04eb62",
+    "author": "User",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-15T18:47:10.571Z"
+  },
+  {
+    "id": "d932514e-e372-4731-91e2-5b880e9cc1f3",
+    "lead_id": "c03007e3-ac9f-477a-868a-157d17e53b5c",
+    "type": "message",
+    "content": "WhatsApp opened",
+    "ts": "2026-02-27T13:40:35.348Z"
+  }
+]

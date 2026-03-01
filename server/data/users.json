@@ -1,0 +1,18 @@
+[
+  {
+    "id": "user_a60bf0a8",
+    "name": "Anis Arafa",
+    "email": "anis@tickandtalk.com",
+    "password": "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9",
+    "role": "account_executive",
+    "created_at": "2026-02-15T22:18:35.874688Z"
+  },
+  {
+    "id": "user_b63f5e67",
+    "name": "Campaign User",
+    "email": "campaign@tickandtalk.com",
+    "password": "811c2124b28a27cc834447ebc7fc9c88b0fb8fc755ca1bac2d15100ad0316c79",
+    "role": "campaign_executive",
+    "created_at": "2026-02-15T22:18:35.875427Z"
+  }
+]

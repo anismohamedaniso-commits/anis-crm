@@ -1,0 +1,13 @@
+[
+  {
+    "id": "ta_0de7232913",
+    "user_id": "1449f438-e28d-413a-952d-18c243d279e0",
+    "user_name": "Anis Arafa",
+    "action": "assigned_lead",
+    "target_type": "lead",
+    "target_id": "c03007e3-ac9f-477a-868a-157d17e53b5c",
+    "target_name": "محمد سعد",
+    "detail": "Assigned to Anis Arafa",
+    "ts": "2026-02-27T15:09:10.640491Z"
+  }
+]

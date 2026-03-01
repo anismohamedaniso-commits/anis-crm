@@ -1,0 +1,55 @@
+
+[functions.whatsapp_send]
+enabled = true
+verify_jwt = true
+import_map = "./functions/whatsapp_send/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/whatsapp_send/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/whatsapp_send/*.html" ]
+
+[functions.whatsapp_webhook]
+enabled = true
+verify_jwt = true
+import_map = "./functions/whatsapp_webhook/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/whatsapp_webhook/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/whatsapp_webhook/*.html" ]
+
+[functions.ingest_lead]
+enabled = true
+verify_jwt = true
+import_map = "./functions/ingest_lead/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/ingest_lead/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/ingest_lead/*.html" ]
+
+[functions.channels]
+enabled = true
+verify_jwt = true
+import_map = "./functions/channels/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/channels/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/channels/*.html" ]
+
+[functions.send_whatsapp_message]
+enabled = true
+verify_jwt = true
+import_map = "./functions/send_whatsapp_message/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/send_whatsapp_message/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/send_whatsapp_message/*.html" ]
