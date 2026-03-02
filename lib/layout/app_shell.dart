@@ -218,18 +218,14 @@ class _AppShellState extends State<AppShell> {
       );
     }
 
-    // ── NARROW: bottom bar (5 key items) + drawer for the rest ──────────
-    // Only show the 5 most important nav items on the bottom bar
-    const mobileBottomItems = <(String, IconData, IconData, String)>[
+    // ── NARROW: slim custom bottom bar + drawer ──────────────────────────
+    final mobileItems = <(String, IconData, IconData, String)>[
       ('Home',     Icons.space_dashboard_outlined,  Icons.space_dashboard_rounded,  '/app/dashboard'),
       ('Leads',    Icons.people_outline,            Icons.people_rounded,           '/app/leads'),
       ('Pipeline', Icons.view_kanban_outlined,      Icons.view_kanban_rounded,      '/app/pipeline'),
       ('Tasks',    Icons.task_outlined,             Icons.task_rounded,             '/app/tasks'),
       ('More',     Icons.menu_rounded,              Icons.menu_rounded,             '__drawer__'),
     ];
-
-    final mobileSelIdx = mobileBottomItems.indexWhere((d) => d.$4 != '__drawer__' && location.startsWith(d.$4));
-    final clampedIdx = mobileSelIdx < 0 ? 4 : mobileSelIdx; // default to "More" if current page isn't in bottom 4
 
     return Scaffold(
       key: _scaffoldKey,
@@ -247,7 +243,7 @@ class _AppShellState extends State<AppShell> {
         tt: tt,
         dk: dk,
         onNav: (path) {
-          Navigator.of(context).pop(); // close drawer
+          Navigator.of(context).pop();
           _go(context, path);
         },
         onProfile: () {
@@ -266,24 +262,18 @@ class _AppShellState extends State<AppShell> {
           child: widget.child,
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: clampedIdx,
-        onDestinationSelected: (i) {
-          if (mobileBottomItems[i].$4 == '__drawer__') {
+      bottomNavigationBar: _SlimBottomBar(
+        items: mobileItems,
+        location: location,
+        cs: cs,
+        dk: dk,
+        onTap: (path) {
+          if (path == '__drawer__') {
             _scaffoldKey.currentState?.openDrawer();
           } else {
-            _go(context, mobileBottomItems[i].$4);
+            _go(context, path);
           }
         },
-        height: 64,
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        destinations: mobileBottomItems
-            .map((d) => NavigationDestination(
-                  icon: Icon(d.$2, size: 22),
-                  selectedIcon: Icon(d.$3, size: 22),
-                  label: d.$1,
-                ))
-            .toList(),
       ),
     );
   }
@@ -313,6 +303,96 @@ class _AppShellState extends State<AppShell> {
         padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
         child: Divider(height: 1, color: cs.outline.withValues(alpha: 0.05)),
       );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SLIM BOTTOM BAR — custom, compact, no overlap on phones
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _SlimBottomBar extends StatelessWidget {
+  const _SlimBottomBar({
+    required this.items,
+    required this.location,
+    required this.cs,
+    required this.dk,
+    required this.onTap,
+  });
+  final List<(String, IconData, IconData, String)> items;
+  final String location;
+  final ColorScheme cs;
+  final bool dk;
+  final ValueChanged<String> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPad = MediaQuery.of(context).padding.bottom;
+    return Container(
+      decoration: BoxDecoration(
+        color: dk ? const Color(0xFF111115) : Colors.white,
+        border: Border(top: BorderSide(color: cs.outline.withValues(alpha: dk ? 0.10 : 0.08))),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: dk ? 0.20 : 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.only(bottom: bottomPad, top: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: items.map((item) {
+          final isActive = item.$4 != '__drawer__' && location.startsWith(item.$4);
+          final isMore = item.$4 == '__drawer__';
+          // Highlight "More" when the current page isn't any of the bottom items
+          final moreHighlight = isMore && !items.any((d) => d.$4 != '__drawer__' && location.startsWith(d.$4));
+          final active = isActive || moreHighlight;
+          final color = active ? cs.primary : cs.onSurface.withValues(alpha: 0.45);
+          final icon = active ? item.$3 : item.$2;
+
+          return Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => onTap(item.$4),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Active dot indicator
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: active ? 20 : 0,
+                      height: 3,
+                      margin: const EdgeInsets.only(bottom: 4),
+                      decoration: BoxDecoration(
+                        color: active ? cs.primary : Colors.transparent,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    Icon(icon, size: 22, color: color),
+                    const SizedBox(height: 2),
+                    Text(
+                      item.$1,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                        color: color,
+                        letterSpacing: 0.1,
+                        height: 1.2,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
