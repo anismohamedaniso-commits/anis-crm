@@ -114,15 +114,19 @@ WA_ACCESS_TOKEN = os.environ.get('WA_ACCESS_TOKEN', '')
 # Allowed CORS origins — set CORS_ORIGINS env var in production
 # (comma-separated list, e.g. "https://app.example.com,https://admin.example.com")
 _cors_origins_raw = os.environ.get('CORS_ORIGINS', '')
-ALLOWED_ORIGINS = (
-    [o.strip() for o in _cors_origins_raw.split(',') if o.strip()]
-    if _cors_origins_raw
-    else ['http://localhost:3000', 'http://127.0.0.1:3000',
-          'http://localhost:8080', 'http://127.0.0.1:8080',
-          'http://localhost:8000', 'http://127.0.0.1:8000',
-          'https://tickandtalkcrm.netlify.app',
-          'https://aesthetic-entremet-ab9ef2.netlify.app']
-)
+# Always include the known production frontend domains
+_PRODUCTION_ORIGINS = [
+    'https://tickandtalkcrm.netlify.app',
+    'https://aesthetic-entremet-ab9ef2.netlify.app',
+]
+_dev_origins = ['http://localhost:3000', 'http://127.0.0.1:3000',
+                'http://localhost:8080', 'http://127.0.0.1:8080',
+                'http://localhost:8000', 'http://127.0.0.1:8000']
+if _cors_origins_raw:
+    _env_origins = [o.strip() for o in _cors_origins_raw.split(',') if o.strip()]
+else:
+    _env_origins = _dev_origins
+ALLOWED_ORIGINS = list(set(_env_origins + _PRODUCTION_ORIGINS))
 
 # =============================================================================
 # RATE LIMITER — in-memory sliding window per IP
