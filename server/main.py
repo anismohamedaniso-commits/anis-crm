@@ -7,6 +7,7 @@ import json
 import uuid
 import hashlib
 import hmac
+import html as _html
 import time
 from datetime import datetime
 from typing import Optional, List
@@ -121,6 +122,32 @@ ALLOWED_ORIGINS = (
           'http://localhost:8000', 'http://127.0.0.1:8000']
 )
 
+# =============================================================================
+# RATE LIMITER — in-memory sliding window per IP
+# =============================================================================
+from collections import defaultdict as _defaultdict
+
+def _get_real_ip(request: Request) -> str:
+    """Get real client IP behind reverse proxies (Railway, etc.)."""
+    forwarded = request.headers.get('x-forwarded-for')
+    if forwarded:
+        return forwarded.split(',')[0].strip()
+    return request.client.host if request.client else '127.0.0.1'
+
+# (method:path) → (max_requests, window_seconds)
+_RATE_LIMITS: dict[str, tuple[int, int]] = {
+    'POST:/api/ai/chat':           (20, 60),
+    'POST:/api/ai/assistant':      (15, 60),
+    'POST:/api/ai/embeddings':     (30, 60),
+    'POST:/api/email/send':        (10, 60),
+    'POST:/api/email/test':        (5,  60),
+    'POST:/api/whatsapp/send':     (10, 60),
+    'POST:/api/leads/import':      (5,  60),
+    'POST:/api/leads/bulk-update': (10, 60),
+    'POST:/api/leads/bulk-delete': (10, 60),
+}
+_rate_windows: dict[str, list[float]] = _defaultdict(list)
+
 app = FastAPI(title="Ollama proxy for Anis CRM")
 
 app.add_middleware(
@@ -130,6 +157,41 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# =============================================================================
+# RATE LIMIT + SECURITY HEADERS MIDDLEWARE
+# =============================================================================
+@app.middleware('http')
+async def rate_limit_and_security_headers(request: Request, call_next):
+    # ── Rate limiting ──
+    route_key = f'{request.method}:{request.url.path}'
+    limit_cfg = _RATE_LIMITS.get(route_key)
+    if limit_cfg:
+        max_reqs, window = limit_cfg
+        ip = _get_real_ip(request)
+        cache_key = f'{ip}:{route_key}'
+        now = time.time()
+        _rate_windows[cache_key] = [t for t in _rate_windows[cache_key] if now - t < window]
+        if len(_rate_windows[cache_key]) >= max_reqs:
+            return JSONResponse(
+                status_code=429,
+                content={'detail': f'Rate limit exceeded. Max {max_reqs} requests per {window}s.'},
+                headers={'Retry-After': str(window)},
+            )
+        _rate_windows[cache_key].append(now)
+
+    response = await call_next(request)
+
+    # ── Security headers ──
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    host = request.headers.get('host', '')
+    if not host.startswith('localhost') and not host.startswith('127.0.0.1'):
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    return response
 
 
 def _check_auth(req: Request):
@@ -246,13 +308,23 @@ def _get_supabase_user(req: Request) -> Optional[dict]:
         return None
 
 
+def _require_user(req: Request) -> dict:
+    """Require authentication (JWT preferred, API key fallback). Returns user context."""
+    user = _get_supabase_user(req)
+    if user:
+        return user
+    # API key fallback — returns system user with admin role
+    key = req.headers.get('x-api-key') or req.query_params.get('api_key')
+    if API_KEY and key == API_KEY:
+        return {'id': 'system', 'name': 'API Key', 'email': '', 'role': ROLE_ACCOUNT_EXEC}
+    raise HTTPException(status_code=401, detail='Not authenticated')
+
+
 def _require_account_exec(req: Request) -> dict:
     """Require the current user to be an account_executive."""
-    user = _get_supabase_user(req)
-    if not user:
-        raise HTTPException(status_code=401, detail='Not authenticated')
+    user = _require_user(req)
     if user.get('role') != ROLE_ACCOUNT_EXEC:
-        raise HTTPException(status_code=403, detail='Insufficient permissions')
+        raise HTTPException(status_code=403, detail='Insufficient permissions — admin only')
     return user
 
 
@@ -370,9 +442,7 @@ async def update_user(req: Request, user_id: str):
 @app.post('/api/auth/storage/ensure-bucket')
 async def ensure_storage_bucket(req: Request):
     """Create a Supabase Storage bucket if it doesn't already exist."""
-    user = _get_supabase_user(req)
-    if not user:
-        raise HTTPException(status_code=401, detail='Not authenticated')
+    user = _require_user(req)
     body = await req.json()
     bucket_name = body.get('bucket', 'avatars')
     is_public = body.get('public', True)
@@ -429,9 +499,7 @@ async def upload_avatar(req: Request):
         raise HTTPException(status_code=500, detail='Service key not configured')
 
     # Get user from JWT
-    user = _get_supabase_user(req)
-    if not user:
-        raise HTTPException(status_code=401, detail='Not authenticated')
+    user = _require_user(req)
 
     body = await req.json()
     file_data_b64 = body.get('file_data')  # base64 encoded
@@ -508,8 +576,7 @@ async def upload_avatar(req: Request):
 
 @app.get("/api/ai/models")
 async def models(req: Request):
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_user(req)
     async with httpx.AsyncClient(timeout=30) as client:
         try:
             r = await client.get(f"{OLLAMA_URL}/api/tags")
@@ -522,8 +589,7 @@ async def models(req: Request):
 
 @app.post("/api/ai/chat")
 async def chat(req: Request):
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_user(req)
     payload = await req.json()
     model = payload.get('model', 'qwen2.5:7b')
     prompt = payload.get('prompt')
@@ -610,8 +676,7 @@ async def chat(req: Request):
 
 @app.post("/api/ai/embeddings")
 async def embeddings(req: Request):
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_user(req)
     payload = await req.json()
     model = payload.get('model', 'text-embedding-3-small')
     input_ = payload.get('input')
@@ -661,8 +726,7 @@ class SendEmailResponse(BaseModel):
 @app.get('/api/email/config')
 async def email_config(req: Request):
     """Return current SMTP config (without password) so the frontend knows if it's set up."""
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_user(req)
     return JSONResponse(content={
         "configured": bool(SMTP_PASS),
         "smtp_host": SMTP_HOST,
@@ -673,8 +737,7 @@ async def email_config(req: Request):
 
 @app.post('/api/email/send')
 async def send_email(req: Request):
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_user(req)
 
     if not SMTP_PASS:
         raise HTTPException(
@@ -709,7 +772,6 @@ async def send_email(req: Request):
         msg.attach(MIMEText(personalised_body, 'plain', 'utf-8'))
 
         # Simple HTML version (preserves line breaks, XSS-safe)
-        import html as _html
         html_body = _html.escape(personalised_body).replace('\n', '<br>')
         html_content = f"""<html><body style="font-family: 'Inter', Arial, sans-serif; color: #333; line-height: 1.6;">{html_body}</body></html>"""
         msg.attach(MIMEText(html_content, 'html', 'utf-8'))
@@ -748,8 +810,7 @@ async def send_email(req: Request):
 @app.post('/api/email/test')
 async def send_test_email(req: Request):
     """Send a single test email to the sender's own address."""
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_user(req)
 
     if not SMTP_PASS:
         raise HTTPException(
@@ -965,8 +1026,7 @@ def _sales_analytics() -> str:
 
 @app.get('/api/crm/summary')
 async def get_crm_summary(req: Request):
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_user(req)
     return JSONResponse(content={"summary": crm_summary()})
 
 
@@ -1018,8 +1078,7 @@ async def _execute_tool(tool: str, args: dict, actor: Optional[str] = None):
 
 @app.post('/api/ai/tools/{tool_name}')
 async def tool_endpoint(tool_name: str, req: Request):
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_user(req)
     body = await req.json()
     actor = req.headers.get('x-user') or req.headers.get('x-api-key') or 'unknown'
     res = await _execute_tool(tool_name, body, actor=actor)
@@ -1044,8 +1103,7 @@ def _extract_first_json_block(text: str) -> Optional[dict]:
 
 @app.post('/api/ai/assistant')
 async def assistant(req: Request):
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_user(req)
     payload = await req.json()
     model = payload.get('model', 'qwen2.5:7b')
     user_message = payload.get('message') or payload.get('prompt') or ''
@@ -1313,8 +1371,7 @@ When asked about wins or losses:
 @app.get('/api/webhooks')
 async def list_webhooks(req: Request):
     """List configured webhook integrations and their status."""
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_user(req)
     webhooks = [
         {
             'id': 'facebook',
@@ -1612,8 +1669,7 @@ def _find_or_create_whatsapp_lead(wa_id: str, name: str, message: str) -> dict:
 @app.post('/api/whatsapp/send')
 async def whatsapp_send_message(req: Request):
     """Send a WhatsApp message via Cloud API."""
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_user(req)
 
     if not WA_ACCESS_TOKEN or not WA_PHONE_NUMBER_ID:
         raise HTTPException(status_code=400, detail='WhatsApp not configured. Set WA_ACCESS_TOKEN and WA_PHONE_NUMBER_ID.')
@@ -1692,8 +1748,7 @@ _apply_integration_config()
 @app.get('/api/integrations/config')
 async def get_integration_config(req: Request):
     """Return current integration config (tokens masked)."""
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_user(req)
 
     def _mask(s: str) -> str:
         if not s or len(s) < 8:
@@ -1720,8 +1775,7 @@ async def get_integration_config(req: Request):
 @app.post('/api/integrations/config')
 async def set_integration_config(req: Request):
     """Update integration config (Facebook / WhatsApp tokens) at runtime."""
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_account_exec(req)
 
     payload = await req.json()
     config = _load_integration_config()
@@ -1752,8 +1806,7 @@ async def set_integration_config(req: Request):
 @app.get('/api/integrations/status')
 async def integration_status(req: Request):
     """Quick status check for all integrations."""
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_user(req)
 
     # Count leads by source
     leads = db.get_leads()
@@ -1775,8 +1828,7 @@ async def integration_status(req: Request):
 @app.get('/api/leads')
 async def get_leads(req: Request, limit: int = 0, offset: int = 0):
     """Return leads with optional pagination."""
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_user(req)
     # Enforce sane pagination bounds
     MAX_PAGE = 500
     if limit <= 0 or limit > MAX_PAGE:
@@ -1792,8 +1844,7 @@ async def get_leads(req: Request, limit: int = 0, offset: int = 0):
 @app.get('/api/leads/{lead_id}')
 async def get_lead(lead_id: str, req: Request):
     """Return a single lead by ID."""
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_user(req)
     lead = db.get_lead(lead_id)
     if not lead:
         raise HTTPException(status_code=404, detail='Lead not found')
@@ -1804,8 +1855,7 @@ async def get_lead(lead_id: str, req: Request):
 @app.post('/api/leads')
 async def create_lead_api(req: Request):
     """Create a new lead via REST."""
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_user(req)
     payload = await req.json()
     try:
         validated = LeadCreate(**payload)
@@ -1819,8 +1869,7 @@ async def create_lead_api(req: Request):
 @app.put('/api/leads/{lead_id}')
 async def update_lead_api(lead_id: str, req: Request):
     """Update a lead by ID."""
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_user(req)
     payload = await req.json()
     try:
         validated = LeadUpdate(**payload)
@@ -1836,8 +1885,7 @@ async def update_lead_api(lead_id: str, req: Request):
 @app.delete('/api/leads/{lead_id}')
 async def delete_lead_api(lead_id: str, req: Request):
     """Delete a lead by ID."""
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_user(req)
     lead = db.get_lead(lead_id)
     if not lead:
         raise HTTPException(status_code=404, detail='Lead not found')
@@ -1849,8 +1897,7 @@ async def delete_lead_api(lead_id: str, req: Request):
 @app.post('/api/leads/import')
 async def import_leads_api(req: Request):
     """Bulk import leads. Expects {"leads": [...]}."""
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_account_exec(req)
     payload = await req.json()
     incoming = payload.get('leads', [])
     if not incoming:
@@ -1864,8 +1911,7 @@ async def import_leads_api(req: Request):
 @app.post('/api/leads/bulk-update')
 async def bulk_update_leads(req: Request):
     """Update multiple leads at once. Expects {"ids": [...], "fields": {...}}."""
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_account_exec(req)
     payload = await req.json()
     ids = payload.get('ids', [])
     fields = payload.get('fields', {})
@@ -1883,8 +1929,7 @@ async def bulk_update_leads(req: Request):
 @app.post('/api/leads/bulk-delete')
 async def bulk_delete_leads(req: Request):
     """Delete multiple leads at once. Expects {"ids": [...]}."""
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_account_exec(req)
     payload = await req.json()
     ids = payload.get('ids', [])
     if not ids:
@@ -1907,8 +1952,7 @@ async def bulk_delete_leads(req: Request):
 @app.get('/api/activities/{lead_id}')
 async def get_activities(lead_id: str, req: Request):
     """Return all notes/activities for a specific lead."""
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_user(req)
     lead_notes = db.get_activities(lead_id)
     return JSONResponse(content={"activities": lead_notes})
 
@@ -1916,8 +1960,7 @@ async def get_activities(lead_id: str, req: Request):
 @app.post('/api/activities')
 async def create_activity(req: Request):
     """Create a new activity / note."""
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_user(req)
     payload = await req.json()
     try:
         validated = ActivityCreate(**payload)
@@ -1931,8 +1974,7 @@ async def create_activity(req: Request):
 @app.get('/api/activities')
 async def get_all_activities(req: Request):
     """Return all activities grouped by lead_id."""
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_user(req)
     grouped = db.get_all_activities()
     return JSONResponse(content={"activities": grouped})
 
@@ -1955,9 +1997,7 @@ def _post_team_activity(user: dict, action: str, target_type: str,
 
 @app.get('/api/team-activities')
 async def get_team_activities(req: Request, limit: int = 50, offset: int = 0):
-    user = _get_supabase_user(req)
-    if not user:
-        raise HTTPException(status_code=401, detail='Not authenticated')
+    user = _require_user(req)
     page, total = db.get_team_activities(limit=limit, offset=offset)
     return JSONResponse(content={'activities': page, 'total': total})
 
@@ -1980,9 +2020,7 @@ def _create_notification(user_id: str, notif_type: str, title: str,
 
 @app.get('/api/notifications')
 async def get_notifications(req: Request, limit: int = 50):
-    user = _get_supabase_user(req)
-    if not user:
-        raise HTTPException(status_code=401, detail='Not authenticated')
+    user = _require_user(req)
     mine, unread = db.get_notifications(user['id'], limit=limit)
     return JSONResponse(content={
         'notifications': mine,
@@ -1992,18 +2030,14 @@ async def get_notifications(req: Request, limit: int = 50):
 
 @app.put('/api/notifications/{notif_id}/read')
 async def mark_notification_read(notif_id: str, req: Request):
-    user = _get_supabase_user(req)
-    if not user:
-        raise HTTPException(status_code=401, detail='Not authenticated')
+    user = _require_user(req)
     db.mark_notification_read(notif_id, user['id'])
     return JSONResponse(content={'ok': True})
 
 
 @app.put('/api/notifications/read-all')
 async def mark_all_notifications_read(req: Request):
-    user = _get_supabase_user(req)
-    if not user:
-        raise HTTPException(status_code=401, detail='Not authenticated')
+    user = _require_user(req)
     db.mark_all_notifications_read(user['id'])
     return JSONResponse(content={'ok': True})
 
@@ -2014,9 +2048,7 @@ async def mark_all_notifications_read(req: Request):
 
 @app.put('/api/leads/{lead_id}/assign')
 async def assign_lead(lead_id: str, req: Request):
-    user = _get_supabase_user(req)
-    if not user:
-        raise HTTPException(status_code=401, detail='Not authenticated')
+    user = _require_user(req)
     payload = await req.json()
     assigned_to_id = payload.get('assigned_to_id', '')
     assigned_to_name = payload.get('assigned_to_name', '')
@@ -2041,18 +2073,14 @@ async def assign_lead(lead_id: str, req: Request):
 
 @app.get('/api/leads/{lead_id}/team-notes')
 async def get_lead_team_notes(lead_id: str, req: Request):
-    user = _get_supabase_user(req)
-    if not user:
-        raise HTTPException(status_code=401, detail='Not authenticated')
+    user = _require_user(req)
     lead_notes = db.get_team_notes(lead_id)
     return JSONResponse(content={'notes': lead_notes})
 
 
 @app.post('/api/leads/{lead_id}/team-notes')
 async def add_lead_team_note(lead_id: str, req: Request):
-    user = _get_supabase_user(req)
-    if not user:
-        raise HTTPException(status_code=401, detail='Not authenticated')
+    user = _require_user(req)
     payload = await req.json()
     note = db.create_activity({
         'lead_id': lead_id,
@@ -2076,9 +2104,7 @@ async def add_lead_team_note(lead_id: str, req: Request):
 @app.get('/api/tasks')
 async def get_tasks(req: Request, assigned_to: str = '', status: str = '',
                     limit: int = 0, offset: int = 0):
-    user = _get_supabase_user(req)
-    if not user:
-        raise HTTPException(status_code=401, detail='Not authenticated')
+    user = _require_user(req)
     tasks = db.get_tasks(assigned_to=assigned_to, status=status,
                          limit=limit, offset=offset)
     return JSONResponse(content={'tasks': tasks})
@@ -2086,9 +2112,7 @@ async def get_tasks(req: Request, assigned_to: str = '', status: str = '',
 
 @app.post('/api/tasks')
 async def create_task(req: Request):
-    user = _get_supabase_user(req)
-    if not user:
-        raise HTTPException(status_code=401, detail='Not authenticated')
+    user = _require_user(req)
     payload = await req.json()
     task = db.create_task({
         'title': payload.get('title', ''),
@@ -2115,9 +2139,7 @@ async def create_task(req: Request):
 
 @app.put('/api/tasks/{task_id}')
 async def update_task(task_id: str, req: Request):
-    user = _get_supabase_user(req)
-    if not user:
-        raise HTTPException(status_code=401, detail='Not authenticated')
+    user = _require_user(req)
     payload = await req.json()
     task = db.update_task(task_id, payload)
     if not task:
@@ -2134,9 +2156,7 @@ async def update_task(task_id: str, req: Request):
 
 @app.delete('/api/tasks/{task_id}')
 async def delete_task(task_id: str, req: Request):
-    user = _get_supabase_user(req)
-    if not user:
-        raise HTTPException(status_code=401, detail='Not authenticated')
+    user = _require_user(req)
     task = db.delete_task(task_id)
     if task:
         _post_team_activity(user, 'deleted_task', 'task', task_id,
@@ -2150,18 +2170,14 @@ async def delete_task(task_id: str, req: Request):
 
 @app.get('/api/chat/channels')
 async def get_chat_channels(req: Request):
-    user = _get_supabase_user(req)
-    if not user:
-        raise HTTPException(status_code=401, detail='Not authenticated')
+    user = _require_user(req)
     channels = db.get_chat_channels(user['id'])
     return JSONResponse(content={'channels': channels})
 
 
 @app.post('/api/chat/channels')
 async def create_chat_channel(req: Request):
-    user = _get_supabase_user(req)
-    if not user:
-        raise HTTPException(status_code=401, detail='Not authenticated')
+    user = _require_user(req)
     payload = await req.json()
     channel = db.create_chat_channel(payload, user['id'])
     return JSONResponse(status_code=201, content=channel)
@@ -2169,18 +2185,14 @@ async def create_chat_channel(req: Request):
 
 @app.get('/api/chat/channels/{channel_id}/messages')
 async def get_channel_messages(channel_id: str, req: Request, limit: int = 100):
-    user = _get_supabase_user(req)
-    if not user:
-        raise HTTPException(status_code=401, detail='Not authenticated')
+    user = _require_user(req)
     messages = db.get_chat_messages(channel_id, limit=limit)
     return JSONResponse(content={'messages': messages})
 
 
 @app.post('/api/chat/channels/{channel_id}/messages')
 async def send_chat_message(channel_id: str, req: Request):
-    user = _get_supabase_user(req)
-    if not user:
-        raise HTTPException(status_code=401, detail='Not authenticated')
+    user = _require_user(req)
     payload = await req.json()
     msg = db.send_chat_message(channel_id, user['id'], user['name'],
                                payload.get('text', ''))
@@ -2209,9 +2221,7 @@ except Exception as e:
 
 @app.get('/api/leaderboard')
 async def get_leaderboard(req: Request):
-    user = _get_supabase_user(req)
-    if not user:
-        raise HTTPException(status_code=401, detail='Not authenticated')
+    user = _require_user(req)
     leads = db.get_leads()
     notes = db.get_leads()  # activities for counting
     tasks = db.get_tasks()
@@ -2274,17 +2284,14 @@ async def get_leaderboard(req: Request):
 
 @app.get('/api/deals')
 async def get_deals(req: Request, limit: int = 0, offset: int = 0):
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_user(req)
     deals = db.get_deals(limit=limit, offset=offset)
     return JSONResponse(content={'deals': deals})
 
 
 @app.post('/api/deals')
 async def create_deal(req: Request):
-    user = _get_supabase_user(req)
-    if not user:
-        raise HTTPException(status_code=401, detail='Not authenticated')
+    user = _require_user(req)
     payload = await req.json()
     try:
         validated = DealCreate(**payload)
@@ -2307,9 +2314,7 @@ async def create_deal(req: Request):
 
 @app.put('/api/deals/{deal_id}')
 async def update_deal(deal_id: str, req: Request):
-    user = _get_supabase_user(req)
-    if not user:
-        raise HTTPException(status_code=401, detail='Not authenticated')
+    user = _require_user(req)
     payload = await req.json()
     deal = db.update_deal(deal_id, payload)
     if not deal:
@@ -2324,9 +2329,7 @@ async def update_deal(deal_id: str, req: Request):
 
 @app.delete('/api/deals/{deal_id}')
 async def delete_deal(deal_id: str, req: Request):
-    user = _get_supabase_user(req)
-    if not user:
-        raise HTTPException(status_code=401, detail='Not authenticated')
+    user = _require_user(req)
     db.delete_deal(deal_id)
     _audit_log({'action': 'deal_deleted', 'deal_id': deal_id, 'by': user['id']})
     return JSONResponse(content={'ok': True})
@@ -2334,8 +2337,7 @@ async def delete_deal(deal_id: str, req: Request):
 
 @app.get('/api/deals/forecast')
 async def get_revenue_forecast(req: Request):
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_user(req)
     forecast = db.get_revenue_forecast()
     return JSONResponse(content=forecast)
 
@@ -2346,8 +2348,7 @@ async def get_revenue_forecast(req: Request):
 
 @app.get('/api/search')
 async def global_search(req: Request, q: str = ''):
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_user(req)
     if not q or len(q) < 2:
         return JSONResponse(content={'leads': [], 'tasks': [], 'deals': [], 'activities': []})
     results = db.search(q)
@@ -2360,8 +2361,7 @@ async def global_search(req: Request, q: str = ''):
 
 @app.get('/api/reports/{report_type}')
 async def get_report(report_type: str, req: Request):
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_user(req)
     if report_type not in ('overview', 'leads', 'revenue'):
         raise HTTPException(status_code=400, detail='Invalid report type')
     data = db.get_report_data(report_type)
@@ -2374,17 +2374,14 @@ async def get_report(report_type: str, req: Request):
 
 @app.get('/api/automation/rules')
 async def get_automation_rules(req: Request):
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_user(req)
     rules = db.get_automation_rules()
     return JSONResponse(content={'rules': rules})
 
 
 @app.post('/api/automation/rules')
 async def create_automation_rule(req: Request):
-    user = _get_supabase_user(req)
-    if not user:
-        raise HTTPException(status_code=401, detail='Not authenticated')
+    user = _require_user(req)
     payload = await req.json()
     rule = db.create_automation_rule(payload)
     _audit_log({'action': 'automation_rule_created', 'rule_id': rule['id'], 'by': user['id']})
@@ -2393,9 +2390,7 @@ async def create_automation_rule(req: Request):
 
 @app.put('/api/automation/rules/{rule_id}')
 async def update_automation_rule(rule_id: str, req: Request):
-    user = _get_supabase_user(req)
-    if not user:
-        raise HTTPException(status_code=401, detail='Not authenticated')
+    user = _require_user(req)
     payload = await req.json()
     rule = db.update_automation_rule(rule_id, payload)
     if not rule:
@@ -2406,9 +2401,7 @@ async def update_automation_rule(rule_id: str, req: Request):
 
 @app.delete('/api/automation/rules/{rule_id}')
 async def delete_automation_rule(rule_id: str, req: Request):
-    user = _get_supabase_user(req)
-    if not user:
-        raise HTTPException(status_code=401, detail='Not authenticated')
+    user = _require_user(req)
     db.delete_automation_rule(rule_id)
     _audit_log({'action': 'automation_rule_deleted', 'rule_id': rule_id, 'by': user['id']})
     return JSONResponse(content={'ok': True})
@@ -2417,8 +2410,7 @@ async def delete_automation_rule(rule_id: str, req: Request):
 @app.post('/api/automation/evaluate')
 async def evaluate_automation(req: Request):
     """Evaluate automation rules for a given trigger and context."""
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_user(req)
     payload = await req.json()
     trigger = payload.get('trigger', '')
     ctx = payload.get('context', {})
@@ -2476,17 +2468,14 @@ async def evaluate_automation(req: Request):
 
 @app.get('/api/custom-fields')
 async def get_custom_fields(req: Request):
-    if not _check_auth(req):
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    _require_user(req)
     fields = db.get_custom_fields()
     return JSONResponse(content=fields)
 
 
 @app.post('/api/custom-fields')
 async def create_custom_field(req: Request):
-    user = _get_supabase_user(req)
-    if not user:
-        raise HTTPException(status_code=401, detail='Not authenticated')
+    user = _require_user(req)
     payload = await req.json()
     field = db.create_custom_field(payload)
     _audit_log({'action': 'custom_field_created', 'field_id': field['id'], 'by': user['id']})
@@ -2495,9 +2484,7 @@ async def create_custom_field(req: Request):
 
 @app.delete('/api/custom-fields/{field_id}')
 async def delete_custom_field(field_id: str, req: Request):
-    user = _get_supabase_user(req)
-    if not user:
-        raise HTTPException(status_code=401, detail='Not authenticated')
+    user = _require_user(req)
     db.delete_custom_field(field_id)
     _audit_log({'action': 'custom_field_deleted', 'field_id': field_id, 'by': user['id']})
     return JSONResponse(content={'ok': True})
