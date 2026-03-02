@@ -57,8 +57,19 @@ create table if not exists public.activities (
   type     text not null default 'note',
   body     text default '',
   ts       text not null default '',
-  author   text default null
+  author   text default null,
+  notes    text default '',
+  outcome  text default '',
+  user_id  text default null
 );
+
+-- Add columns if table already exists (idempotent)
+do $$ begin
+  alter table public.activities add column if not exists notes text default '';
+  alter table public.activities add column if not exists outcome text default '';
+  alter table public.activities add column if not exists user_id text default null;
+exception when others then null;
+end $$;
 
 create index if not exists idx_activities_lead_id on public.activities(lead_id);
 
@@ -97,6 +108,28 @@ create policy "Tasks full access for authenticated"
 drop policy if exists "Service role full access on tasks" on public.tasks;
 create policy "Service role full access on tasks"
   on public.tasks for all to service_role
+  using (true) with check (true);
+
+-- ── CUSTOM FIELDS ────────────────────────────────────────────────────────────
+create table if not exists public.custom_fields (
+  id          text primary key,
+  name        text not null,
+  field_type  text not null default 'text',
+  options     jsonb default '[]'::jsonb,
+  required    boolean default false,
+  created_at  text not null default ''
+);
+
+alter table public.custom_fields enable row level security;
+
+drop policy if exists "Custom fields full access for authenticated" on public.custom_fields;
+create policy "Custom fields full access for authenticated"
+  on public.custom_fields for all to authenticated
+  using (true) with check (true);
+
+drop policy if exists "Service role full access on custom_fields" on public.custom_fields;
+create policy "Service role full access on custom_fields"
+  on public.custom_fields for all to service_role
   using (true) with check (true);
 """
 

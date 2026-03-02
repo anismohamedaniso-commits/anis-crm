@@ -96,10 +96,21 @@ SUPABASE_ANON_KEY = os.environ.get('SUPABASE_ANON_KEY', '')
 SUPABASE_SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
 SUPABASE_JWT_SECRET = os.environ.get('SUPABASE_JWT_SECRET', '')
 
+# JWKS client for ES256 token verification (Supabase now uses asymmetric keys)
+_jwks_client = None
+if SUPABASE_URL:
+    try:
+        from jwt import PyJWKClient
+        _jwks_url = f"{SUPABASE_URL}/auth/v1/.well-known/jwks.json"
+        _jwks_client = PyJWKClient(_jwks_url, cache_keys=True, lifespan=3600)
+        logging.info(f'JWKS client initialized: {_jwks_url}')
+    except Exception as e:
+        logging.warning(f'Failed to initialize JWKS client: {e}')
+
 if not SUPABASE_URL:
     logging.warning('SUPABASE_URL not set — Supabase features disabled')
-if not SUPABASE_JWT_SECRET:
-    logging.warning('SUPABASE_JWT_SECRET not set — JWT tokens will NOT be verified! Set it for production.')
+if not SUPABASE_JWT_SECRET and not _jwks_client:
+    logging.warning('No JWT verification method available — set SUPABASE_URL or SUPABASE_JWT_SECRET!')
 
 # Admin client (service_role) for creating/deleting users
 _supabase_admin = None
@@ -124,13 +135,40 @@ def _get_supabase_user(req: Request) -> Optional[dict]:
         return None
     token = auth[7:]
     try:
-        # Decode JWT — always verify signature when secret is available
-        if SUPABASE_JWT_SECRET:
-            payload = jwt.decode(token, SUPABASE_JWT_SECRET, algorithms=['HS256'], audience='authenticated')
-        else:
-            # INSECURE: decode without verification — development only
-            logging.warning('JWT decoded WITHOUT signature verification — set SUPABASE_JWT_SECRET!')
+        payload = None
+        # Method 1: JWKS-based verification (ES256 — preferred for Supabase v2+)
+        if _jwks_client:
+            try:
+                signing_key = _jwks_client.get_signing_key_from_jwt(token)
+                payload = jwt.decode(
+                    token,
+                    signing_key.key,
+                    algorithms=['ES256'],
+                    audience='authenticated',
+                )
+            except Exception as e:
+                logging.debug(f'JWKS verification failed, trying HS256 fallback: {e}')
+
+        # Method 2: HS256 fallback (legacy Supabase projects)
+        if payload is None and SUPABASE_JWT_SECRET:
+            try:
+                payload = jwt.decode(
+                    token,
+                    SUPABASE_JWT_SECRET,
+                    algorithms=['HS256'],
+                    audience='authenticated',
+                )
+            except Exception as e:
+                logging.debug(f'HS256 verification failed: {e}')
+
+        # Method 3: No verification (development only)
+        if payload is None and not SUPABASE_JWT_SECRET and not _jwks_client:
+            logging.warning('JWT decoded WITHOUT signature verification — set SUPABASE_URL!')
             payload = jwt.decode(token, options={'verify_signature': False})
+
+        if payload is None:
+            return None
+
         user_id = payload.get('sub')
         if not user_id:
             return None
@@ -1199,6 +1237,27 @@ When asked about wins or losses:
 #   4. Verify Token: same as FB_VERIFY_TOKEN above
 #   5. Generate a Page Access Token with "leads_retrieval" permission
 # =============================================================================
+
+@app.get('/api/webhooks')
+async def list_webhooks(req: Request):
+    """List configured webhook integrations and their status."""
+    if not _check_auth(req):
+        raise HTTPException(status_code=401, detail='Unauthorized')
+    webhooks = [
+        {
+            'id': 'facebook',
+            'name': 'Facebook Lead Ads',
+            'url': '/api/webhooks/facebook',
+            'enabled': bool(os.environ.get('FB_PAGE_ACCESS_TOKEN')),
+        },
+        {
+            'id': 'whatsapp',
+            'name': 'WhatsApp Business',
+            'url': '/api/webhooks/whatsapp',
+            'enabled': bool(os.environ.get('WA_TOKEN')),
+        },
+    ]
+    return JSONResponse(content={'webhooks': webhooks})
 
 @app.get('/api/webhooks/facebook')
 async def facebook_webhook_verify(req: Request):

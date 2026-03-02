@@ -17,6 +17,9 @@ FLUTTER="$HOME/flutter/bin/flutter"
 # ── Read from .env ────────────────────────────────────────
 ENV_FILE="$DIR/.env"
 if [ ! -f "$ENV_FILE" ]; then
+  ENV_FILE="$DIR/server/.env"
+fi
+if [ ! -f "$ENV_FILE" ]; then
   echo "❌  .env file not found. Copy .env.example → .env and fill in values."
   exit 1
 fi

@@ -207,11 +207,22 @@ class CrmDatabase:
             grouped[lid].sort(key=lambda n: n.get('ts', ''), reverse=True)
         return grouped
 
+    # Columns that exist in the activities Supabase table
+    _ACTIVITY_COLS = {'id', 'lead_id', 'type', 'body', 'ts', 'author',
+                      'notes', 'outcome', 'user_id'}
+
     def create_activity(self, activity: dict) -> dict:
         activity.setdefault('id', f"note_{uuid.uuid4().hex[:8]}")
         activity.setdefault('ts', _now_iso())
+        # Map 'notes' → 'body' for backward compatibility
+        if 'notes' in activity and not activity.get('body'):
+            activity['body'] = activity.pop('notes')
+        elif 'notes' in activity:
+            activity.pop('notes', None)
         if self._use_db:
-            return self._sb_insert('activities', activity)
+            # Only send columns that exist in the table
+            safe = {k: v for k, v in activity.items() if k in self._ACTIVITY_COLS}
+            return self._sb_insert('activities', safe)
         notes = _load_json(NOTES_FILE)
         notes.append(activity)
         _save_json(NOTES_FILE, notes)
@@ -704,7 +715,10 @@ class CrmDatabase:
 
     def get_custom_fields(self) -> list[dict]:
         if self._use_db:
-            return self._sb_select('custom_fields', order_col='created_at')
+            try:
+                return self._sb_select('custom_fields', order_col='created_at')
+            except Exception:
+                return []  # Table may not exist yet
         return _load_json(self.CUSTOM_FIELDS_FILE)
 
     def create_custom_field(self, field: dict) -> dict:
@@ -712,7 +726,11 @@ class CrmDatabase:
         field.setdefault('id', f"cf_{uuid.uuid4().hex[:8]}")
         field.setdefault('created_at', now)
         if self._use_db:
-            return self._sb_insert('custom_fields', field)
+            try:
+                return self._sb_insert('custom_fields', field)
+            except Exception as e:
+                logging.warning(f'custom_fields insert failed (table may not exist): {e}')
+                raise
         fields = _load_json(self.CUSTOM_FIELDS_FILE)
         fields.append(field)
         _save_json(self.CUSTOM_FIELDS_FILE, fields)
@@ -720,7 +738,11 @@ class CrmDatabase:
 
     def delete_custom_field(self, field_id: str) -> bool:
         if self._use_db:
-            return self._sb_delete('custom_fields', field_id)
+            try:
+                return self._sb_delete('custom_fields', field_id)
+            except Exception as e:
+                logging.warning(f'custom_fields delete failed (table may not exist): {e}')
+                raise
         fields = _load_json(self.CUSTOM_FIELDS_FILE)
         fields = [f for f in fields if f['id'] != field_id]
         _save_json(self.CUSTOM_FIELDS_FILE, fields)
