@@ -49,16 +49,6 @@ class _AppShellState extends State<AppShell> {
     _NavDestination('Team', Icons.group_outlined, Icons.group_rounded, '/app/team', accountExecOnly: true),
   ];
 
-  List<_NavDestination> _flat() {
-    final isAdmin = AuthService.instance.user?.isAccountExecutive ?? false;
-    return [
-      ..._coreSection,
-      ..._toolsSection,
-      ..._collabSection,
-      if (isAdmin) ..._adminSection,
-    ];
-  }
-
   String _activePath(BuildContext context) => GoRouterState.of(context).uri.toString();
 
   void _go(BuildContext context, String path) {
@@ -230,7 +220,7 @@ class _AppShellState extends State<AppShell> {
 
     // ── NARROW: bottom bar (5 key items) + drawer for the rest ──────────
     // Only show the 5 most important nav items on the bottom bar
-    const _mobileBottomItems = <(String, IconData, IconData, String)>[
+    const mobileBottomItems = <(String, IconData, IconData, String)>[
       ('Home',     Icons.space_dashboard_outlined,  Icons.space_dashboard_rounded,  '/app/dashboard'),
       ('Leads',    Icons.people_outline,            Icons.people_rounded,           '/app/leads'),
       ('Pipeline', Icons.view_kanban_outlined,      Icons.view_kanban_rounded,      '/app/pipeline'),
@@ -238,7 +228,7 @@ class _AppShellState extends State<AppShell> {
       ('More',     Icons.menu_rounded,              Icons.menu_rounded,             '__drawer__'),
     ];
 
-    final mobileSelIdx = _mobileBottomItems.indexWhere((d) => d.$4 != '__drawer__' && location.startsWith(d.$4));
+    final mobileSelIdx = mobileBottomItems.indexWhere((d) => d.$4 != '__drawer__' && location.startsWith(d.$4));
     final clampedIdx = mobileSelIdx < 0 ? 4 : mobileSelIdx; // default to "More" if current page isn't in bottom 4
 
     return Scaffold(
@@ -260,6 +250,10 @@ class _AppShellState extends State<AppShell> {
           Navigator.of(context).pop(); // close drawer
           _go(context, path);
         },
+        onProfile: () {
+          Navigator.of(context).pop();
+          _go(context, '/app/profile');
+        },
         onLogout: () async {
           Navigator.of(context).pop();
           await AuthService.instance.logout();
@@ -275,15 +269,15 @@ class _AppShellState extends State<AppShell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: clampedIdx,
         onDestinationSelected: (i) {
-          if (_mobileBottomItems[i].$4 == '__drawer__') {
+          if (mobileBottomItems[i].$4 == '__drawer__') {
             _scaffoldKey.currentState?.openDrawer();
           } else {
-            _go(context, _mobileBottomItems[i].$4);
+            _go(context, mobileBottomItems[i].$4);
           }
         },
         height: 64,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        destinations: _mobileBottomItems
+        destinations: mobileBottomItems
             .map((d) => NavigationDestination(
                   icon: Icon(d.$2, size: 22),
                   selectedIcon: Icon(d.$3, size: 22),
@@ -502,6 +496,7 @@ class _MobileDrawer extends StatelessWidget {
     required this.tt,
     required this.dk,
     required this.onNav,
+    required this.onProfile,
     required this.onLogout,
   });
   final List<(String, List<_NavDestination>)> sections;
@@ -511,6 +506,7 @@ class _MobileDrawer extends StatelessWidget {
   final TextTheme tt;
   final bool dk;
   final ValueChanged<String> onNav;
+  final VoidCallback onProfile;
   final VoidCallback onLogout;
 
   @override
@@ -567,18 +563,30 @@ class _MobileDrawer extends StatelessWidget {
               border: Border(top: BorderSide(color: cs.outline.withValues(alpha: dk ? 0.06 : 0.05))),
             ),
             child: Row(children: [
-              _UserAvatarWidget(user: user, size: 32, cs: cs),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(user?.name ?? 'User',
-                      style: tt.bodyMedium?.semiBold.withColor(cs.onSurface),
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
-                  Text(
-                    user?.role == UserRole.accountExecutive ? 'Account Executive' : 'Campaign Executive',
-                    style: tt.labelSmall?.copyWith(fontSize: 10, color: cs.onSurface.withValues(alpha: 0.4)),
+              GestureDetector(
+                onTap: onProfile,
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  _UserAvatarWidget(user: user, size: 32, cs: cs),
+                  const SizedBox(width: 10),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 140),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(user?.name ?? 'User',
+                          style: tt.bodyMedium?.semiBold.withColor(cs.onSurface),
+                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Text(
+                        user?.role == UserRole.accountExecutive ? 'Account Executive' : 'Campaign Executive',
+                        style: tt.labelSmall?.copyWith(fontSize: 10, color: cs.onSurface.withValues(alpha: 0.4)),
+                      ),
+                    ]),
                   ),
                 ]),
+              ),
+              const Spacer(),
+              IconButton(
+                icon: Icon(Icons.person_outline_rounded, size: 18, color: cs.onSurface.withValues(alpha: 0.5)),
+                tooltip: 'Profile',
+                onPressed: onProfile,
               ),
               IconButton(
                 icon: Icon(Icons.logout_rounded, size: 18, color: cs.onSurface.withValues(alpha: 0.4)),
