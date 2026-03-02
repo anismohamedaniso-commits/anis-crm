@@ -1832,8 +1832,12 @@ def _post_team_activity(user: dict, action: str, target_type: str,
                         target_id: str = '', target_name: str = '',
                         detail: str = ''):
     """Helper to append a team activity entry — delegates to db layer."""
-    return db.post_team_activity(user, action, target_type,
-                                 target_id, target_name, detail)
+    try:
+        return db.post_team_activity(user, action, target_type,
+                                     target_id, target_name, detail)
+    except Exception as e:
+        logging.debug(f'Team activity post failed (table may not exist): {e}')
+        return {}
 
 
 @app.get('/api/team-activities')
@@ -1853,8 +1857,12 @@ def _create_notification(user_id: str, notif_type: str, title: str,
                          body: str = '', action_url: str = '',
                          from_user_id: str = '', from_user_name: str = ''):
     """Helper to create a notification — delegates to db layer."""
-    return db.create_notification(user_id, notif_type, title, body,
-                                  action_url, from_user_id, from_user_name)
+    try:
+        return db.create_notification(user_id, notif_type, title, body,
+                                      action_url, from_user_id, from_user_name)
+    except Exception as e:
+        logging.debug(f'Notification creation failed (table may not exist): {e}')
+        return {}
 
 
 @app.get('/api/notifications')

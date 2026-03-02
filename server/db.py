@@ -80,6 +80,28 @@ class CrmDatabase:
         return self._use_db
 
     # ─── HELPERS ──────────────────────────────────────────────────────────
+    # Known columns per Supabase table (for filtering unknown fields)
+    _TABLE_COLS = {
+        'leads': {'id', 'name', 'phone', 'email', 'status', 'source', 'campaign',
+                  'deal_value', 'assigned_to', 'assigned_to_name', 'tags',
+                  'created_at', 'updated_at', 'last_contacted_at', 'next_followup_at'},
+        'activities': {'id', 'lead_id', 'type', 'body', 'ts', 'author'},
+        'tasks': {'id', 'lead_id', 'title', 'due_date', 'assigned_to',
+                  'status', 'priority', 'created_at', 'updated_at'},
+        'deals': {'id', 'lead_id', 'lead_name', 'title', 'value', 'stage',
+                  'probability', 'expected_close', 'assigned_to', 'notes',
+                  'created_at', 'updated_at'},
+        'notifications': {'id', 'user_id', 'type', 'title', 'body', 'action_url',
+                          'from_user_id', 'from_user_name', 'read', 'ts'},
+    }
+
+    def _sb_filter_cols(self, table: str, row: dict) -> dict:
+        """Strip columns that don't exist in the Supabase table schema."""
+        known = self._TABLE_COLS.get(table)
+        if not known:
+            return row  # table not in registry — pass through
+        return {k: v for k, v in row.items() if k in known}
+
     def _sb_select(self, table: str, filters: dict | None = None,
                    order_col: str | None = None, ascending: bool = False,
                    limit: int = 0, offset: int = 0) -> list[dict]:
@@ -95,10 +117,12 @@ class CrmDatabase:
         return q.execute().data or []
 
     def _sb_insert(self, table: str, row: dict) -> dict:
-        return self._sb.table(table).insert(row).execute().data[0]
+        safe_row = self._sb_filter_cols(table, row)
+        return self._sb.table(table).insert(safe_row).execute().data[0]
 
     def _sb_update(self, table: str, row_id: str, fields: dict) -> dict | None:
-        res = self._sb.table(table).update(fields).eq('id', row_id).execute()
+        safe_fields = self._sb_filter_cols(table, fields)
+        res = self._sb.table(table).update(safe_fields).eq('id', row_id).execute()
         return res.data[0] if res.data else None
 
     def _sb_delete(self, table: str, row_id: str) -> bool:
@@ -207,10 +231,6 @@ class CrmDatabase:
             grouped[lid].sort(key=lambda n: n.get('ts', ''), reverse=True)
         return grouped
 
-    # Columns that exist in the activities Supabase table
-    _ACTIVITY_COLS = {'id', 'lead_id', 'type', 'body', 'ts', 'author',
-                      'notes', 'outcome', 'user_id'}
-
     def create_activity(self, activity: dict) -> dict:
         activity.setdefault('id', f"note_{uuid.uuid4().hex[:8]}")
         activity.setdefault('ts', _now_iso())
@@ -220,9 +240,7 @@ class CrmDatabase:
         elif 'notes' in activity:
             activity.pop('notes', None)
         if self._use_db:
-            # Only send columns that exist in the table
-            safe = {k: v for k, v in activity.items() if k in self._ACTIVITY_COLS}
-            return self._sb_insert('activities', safe)
+            return self._sb_insert('activities', activity)
         notes = _load_json(NOTES_FILE)
         notes.append(activity)
         _save_json(NOTES_FILE, notes)
@@ -327,11 +345,14 @@ class CrmDatabase:
 
     def get_team_activities(self, limit: int = 50, offset: int = 0) -> tuple[list[dict], int]:
         if self._use_db:
-            count_res = self._sb.table('team_activities').select('id', count='exact').execute()
-            total = count_res.count or 0
-            data = self._sb_select('team_activities', order_col='ts',
-                                   limit=limit, offset=offset)
-            return data, total
+            try:
+                count_res = self._sb.table('team_activities').select('id', count='exact').execute()
+                total = count_res.count or 0
+                data = self._sb_select('team_activities', order_col='ts',
+                                       limit=limit, offset=offset)
+                return data, total
+            except Exception:
+                return [], 0  # Table may not exist yet
         activities = _load_json(TEAM_ACTIVITIES_FILE)
         total = len(activities)
         return activities[offset:offset + limit], total
@@ -364,16 +385,19 @@ class CrmDatabase:
 
     def get_notifications(self, user_id: str, limit: int = 50) -> tuple[list[dict], int]:
         if self._use_db:
-            mine = self._sb_select('notifications',
-                                   filters={'user_id': user_id},
-                                   order_col='ts', limit=limit)
-            unread_res = (self._sb.table('notifications')
-                          .select('id', count='exact')
-                          .eq('user_id', user_id)
-                          .eq('read', False)
-                          .execute())
-            unread = unread_res.count or 0
-            return mine, unread
+            try:
+                mine = self._sb_select('notifications',
+                                       filters={'user_id': user_id},
+                                       order_col='ts', limit=limit)
+                unread_res = (self._sb.table('notifications')
+                              .select('id', count='exact')
+                              .eq('user_id', user_id)
+                              .eq('read', False)
+                              .execute())
+                unread = unread_res.count or 0
+                return mine, unread
+            except Exception:
+                return [], 0  # Table may not exist yet
         all_notifs = _load_json(NOTIFICATIONS_FILE)
         mine = [n for n in all_notifs if n.get('user_id') == user_id]
         unread = sum(1 for n in mine if not n.get('read', False))
@@ -407,21 +431,28 @@ class CrmDatabase:
     # ─── CHAT CHANNELS ────────────────────────────────────────────────────
     def get_chat_channels(self, user_id: str) -> list[dict]:
         if self._use_db:
-            # RLS handles filtering; fetch all channels user can see
-            channels = self._sb_select('chat_channels', order_col='created_at')
+            try:
+                # RLS handles filtering; fetch all channels user can see
+                channels = self._sb_select('chat_channels', order_col='created_at')
+            except Exception:
+                return []  # Table may not exist yet
             # Enrich with latest message info
             for ch in channels:
-                msgs = (self._sb.table('chat_messages')
-                        .select('*')
-                        .eq('channel_id', ch['id'])
-                        .order('ts', desc=True)
-                        .limit(1)
-                        .execute().data or [])
-                msg_count = (self._sb.table('chat_messages')
-                             .select('id', count='exact')
-                             .eq('channel_id', ch['id'])
-                             .execute())
-                ch['message_count'] = msg_count.count or 0
+                try:
+                    msgs = (self._sb.table('chat_messages')
+                            .select('*')
+                            .eq('channel_id', ch['id'])
+                            .order('ts', desc=True)
+                            .limit(1)
+                            .execute().data or [])
+                    msg_count = (self._sb.table('chat_messages')
+                                 .select('id', count='exact')
+                                 .eq('channel_id', ch['id'])
+                                 .execute())
+                    ch['message_count'] = msg_count.count or 0
+                except Exception:
+                    msgs = []
+                    ch['message_count'] = 0
                 if msgs:
                     ch['last_message'] = (msgs[0].get('text', '') or '')[:60]
                     ch['last_message_at'] = msgs[0].get('ts', '')
