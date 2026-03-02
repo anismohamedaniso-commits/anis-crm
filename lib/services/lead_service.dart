@@ -72,12 +72,11 @@ class LeadService {
         }
         leads.value = parsed;
       } else {
-        leads.value = _sampleLeads();
-        await _saveLocal();
+        leads.value = []; // Empty state — no fake sample data in production
       }
     } catch (e) {
-      debugPrint('LeadService.load: local storage failed, using sample data ($e)');
-      leads.value = _sampleLeads();
+      debugPrint('LeadService.load: local storage failed ($e)');
+      leads.value = [];
     } finally {
       _loaded = true;
     }

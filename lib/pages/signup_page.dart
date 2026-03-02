@@ -22,7 +22,7 @@ class _SignUpPageState extends State<SignUpPage>
   bool _obscureConfirm = true;
   String? _error;
   String? _success;
-  String _role = '';
+  String _role = 'campaign_executive'; // Default role — admins promote via team page
 
   late AnimationController _fadeCtrl;
   late Animation<double> _fadeAnim;
@@ -60,10 +60,6 @@ class _SignUpPageState extends State<SignUpPage>
     final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
     if (!emailRegex.hasMatch(email)) {
       setState(() => _error = 'Please enter a valid email address');
-      return;
-    }
-    if (_role.isEmpty) {
-      setState(() => _error = 'Please select your role');
       return;
     }
     if (password.length < 6) {
@@ -317,35 +313,6 @@ class _SignUpPageState extends State<SignUpPage>
                         const SizedBox(height: 20),
 
                         // Role selector
-                        _label(tt, cs, 'Your Role'),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _roleCard(
-                                cs: cs,
-                                tt: tt,
-                                isDark: isDark,
-                                icon: Icons.trending_up_rounded,
-                                title: 'Account Executive',
-                                subtitle: 'Full access',
-                                value: UserRole.accountExecutive,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _roleCard(
-                                cs: cs,
-                                tt: tt,
-                                isDark: isDark,
-                                icon: Icons.campaign_rounded,
-                                title: 'Campaign Executive',
-                                subtitle: 'Campaign access',
-                                value: UserRole.campaignExecutive,
-                              ),
-                            ),
-                          ],
-                        ),
                         const SizedBox(height: 24),
 
                         // Error message

@@ -13,7 +13,7 @@ from typing import Optional, List
 from pathlib import Path
 from dotenv import load_dotenv
 import logging
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 import aiosmtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -22,6 +22,60 @@ from email.mime.multipart import MIMEMultipart
 from db import CrmDatabase
 
 load_dotenv()
+
+
+# =============================================================================
+# PYDANTIC INPUT MODELS — validate all mutation payloads
+# =============================================================================
+
+class LeadCreate(BaseModel):
+    id: Optional[str] = None
+    name: str = Field(..., min_length=1, max_length=200)
+    email: Optional[str] = Field(None, max_length=254)
+    phone: Optional[str] = Field(None, max_length=30)
+    status: str = Field('new', max_length=30)
+    source: Optional[str] = Field(None, max_length=100)
+    campaign: Optional[str] = Field(None, max_length=200)
+    deal_value: Optional[float] = Field(0, ge=0)
+    assigned_to: Optional[str] = None
+    assigned_to_name: Optional[str] = None
+    tags: Optional[list] = None
+    next_followup_at: Optional[str] = None
+    notes: Optional[str] = None
+    company: Optional[str] = None
+
+class LeadUpdate(BaseModel):
+    name: Optional[str] = Field(None, max_length=200)
+    email: Optional[str] = Field(None, max_length=254)
+    phone: Optional[str] = Field(None, max_length=30)
+    status: Optional[str] = Field(None, max_length=30)
+    source: Optional[str] = Field(None, max_length=100)
+    campaign: Optional[str] = Field(None, max_length=200)
+    deal_value: Optional[float] = Field(None, ge=0)
+    assigned_to: Optional[str] = None
+    assigned_to_name: Optional[str] = None
+    tags: Optional[list] = None
+    next_followup_at: Optional[str] = None
+    notes: Optional[str] = None
+    company: Optional[str] = None
+
+class ActivityCreate(BaseModel):
+    lead_id: str = Field(..., min_length=1, max_length=100)
+    type: str = Field('note', max_length=30)
+    notes: Optional[str] = Field(None, max_length=5000)
+    body: Optional[str] = Field(None, max_length=5000)
+    outcome: Optional[str] = Field(None, max_length=200)
+
+class DealCreate(BaseModel):
+    lead_id: Optional[str] = Field(None, max_length=100)
+    title: str = Field(..., min_length=1, max_length=200)
+    value: Optional[float] = Field(0, ge=0)
+    stage: str = Field('discovery', max_length=50)
+    contact_name: Optional[str] = Field(None, max_length=200)
+    contact_email: Optional[str] = Field(None, max_length=254)
+    expected_close: Optional[str] = None
+    notes: Optional[str] = Field(None, max_length=5000)
+
 
 OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://127.0.0.1:11434')
 API_KEY = os.environ.get('API_KEY')
@@ -51,6 +105,7 @@ SMTP_FROM_NAME = os.environ.get('SMTP_FROM_NAME', 'Anis Arafa')
 # These can be set via .env or the /api/integrations/config endpoint at runtime
 FB_VERIFY_TOKEN = os.environ.get('FB_VERIFY_TOKEN', 'anis_crm_verify_token')
 FB_PAGE_ACCESS_TOKEN = os.environ.get('FB_PAGE_ACCESS_TOKEN', '')
+FB_APP_SECRET = os.environ.get('FB_APP_SECRET', '')  # For webhook signature verification
 WA_VERIFY_TOKEN = os.environ.get('WA_VERIFY_TOKEN', 'anis_crm_wa_verify')
 WA_PHONE_NUMBER_ID = os.environ.get('WA_PHONE_NUMBER_ID', '')
 WA_ACCESS_TOKEN = os.environ.get('WA_ACCESS_TOKEN', '')
@@ -78,10 +133,18 @@ app.add_middleware(
 
 
 def _check_auth(req: Request):
-    if not API_KEY:
-        return True
+    """Check API key or JWT bearer token. Fails closed if neither is configured."""
+    # Check API key first
     key = req.headers.get('x-api-key') or req.query_params.get('api_key')
-    return key == API_KEY
+    if API_KEY and key == API_KEY:
+        return True
+    # Fall back to JWT auth (any valid logged-in user)
+    if _get_supabase_user(req):
+        return True
+    # If no API_KEY is configured and no JWT, only allow in explicit dev mode
+    if not API_KEY and os.environ.get('DEV_MODE') == 'true':
+        return True
+    return False
 
 
 # =============================================================================
@@ -161,10 +224,7 @@ def _get_supabase_user(req: Request) -> Optional[dict]:
             except Exception as e:
                 logging.debug(f'HS256 verification failed: {e}')
 
-        # Method 3: No verification (development only)
-        if payload is None and not SUPABASE_JWT_SECRET and not _jwks_client:
-            logging.warning('JWT decoded WITHOUT signature verification — set SUPABASE_URL!')
-            payload = jwt.decode(token, options={'verify_signature': False})
+        # Method 3: Removed — never decode without verification in any environment
 
         if payload is None:
             return None
@@ -310,6 +370,9 @@ async def update_user(req: Request, user_id: str):
 @app.post('/api/auth/storage/ensure-bucket')
 async def ensure_storage_bucket(req: Request):
     """Create a Supabase Storage bucket if it doesn't already exist."""
+    user = _get_supabase_user(req)
+    if not user:
+        raise HTTPException(status_code=401, detail='Not authenticated')
     body = await req.json()
     bucket_name = body.get('bucket', 'avatars')
     is_public = body.get('public', True)
@@ -565,7 +628,15 @@ async def embeddings(req: Request):
 
 @app.get('/api/health')
 async def root():
-    return {"ok": True, "proxied_to": OLLAMA_URL}
+    health = {
+        "ok": True,
+        "proxied_to": OLLAMA_URL,
+        "supabase": bool(SUPABASE_URL),
+        "jwt_verification": "jwks" if _jwks_client else ("hs256" if SUPABASE_JWT_SECRET else "none"),
+        "smtp_configured": bool(SMTP_PASS),
+        "auth_mode": "api_key" if API_KEY else ("jwt_only" if _jwks_client else "dev_mode"),
+    }
+    return health
 
 
 # --- Email sending ----------------------------------------------------------------
@@ -637,8 +708,9 @@ async def send_email(req: Request):
         # Plain text version
         msg.attach(MIMEText(personalised_body, 'plain', 'utf-8'))
 
-        # Simple HTML version (preserves line breaks)
-        html_body = personalised_body.replace('\n', '<br>')
+        # Simple HTML version (preserves line breaks, XSS-safe)
+        import html as _html
+        html_body = _html.escape(personalised_body).replace('\n', '<br>')
         html_content = f"""<html><body style="font-family: 'Inter', Arial, sans-serif; color: #333; line-height: 1.6;">{html_body}</body></html>"""
         msg.attach(MIMEText(html_content, 'html', 'utf-8'))
 
@@ -1280,7 +1352,19 @@ async def facebook_webhook_receive(req: Request):
     a leadgen event here. We fetch the full lead data using the
     Graph API and create a lead in the CRM automatically.
     """
-    payload = await req.json()
+    # Verify Meta webhook signature (X-Hub-Signature-256)
+    if FB_APP_SECRET:
+        raw_body = await req.body()
+        sig_header = req.headers.get('x-hub-signature-256', '')
+        expected = 'sha256=' + hmac.new(
+            FB_APP_SECRET.encode(), raw_body, hashlib.sha256
+        ).hexdigest()
+        if not hmac.compare_digest(sig_header, expected):
+            logging.warning('Facebook webhook signature mismatch — rejecting')
+            raise HTTPException(status_code=403, detail='Invalid signature')
+        payload = json.loads(raw_body)
+    else:
+        payload = await req.json()
     logging.info(f"Facebook webhook received: {json.dumps(payload, indent=2)}")
 
     leads_created = []
@@ -1396,7 +1480,19 @@ async def whatsapp_webhook_receive(req: Request):
     Meta sends a notification here. We extract the sender info and
     create/update a lead in the CRM automatically.
     """
-    payload = await req.json()
+    # Verify Meta webhook signature (X-Hub-Signature-256)
+    if FB_APP_SECRET:
+        raw_body = await req.body()
+        sig_header = req.headers.get('x-hub-signature-256', '')
+        expected = 'sha256=' + hmac.new(
+            FB_APP_SECRET.encode(), raw_body, hashlib.sha256
+        ).hexdigest()
+        if not hmac.compare_digest(sig_header, expected):
+            logging.warning('WhatsApp webhook signature mismatch — rejecting')
+            raise HTTPException(status_code=403, detail='Invalid signature')
+        payload = json.loads(raw_body)
+    else:
+        payload = await req.json()
     logging.info(f"WhatsApp webhook received: {json.dumps(payload, indent=2)}")
 
     leads_created = 0
@@ -1681,6 +1777,11 @@ async def get_leads(req: Request, limit: int = 0, offset: int = 0):
     """Return leads with optional pagination."""
     if not _check_auth(req):
         raise HTTPException(status_code=401, detail='Unauthorized')
+    # Enforce sane pagination bounds
+    MAX_PAGE = 500
+    if limit <= 0 or limit > MAX_PAGE:
+        limit = MAX_PAGE
+    offset = max(0, offset)
     leads = db.get_leads(limit=limit, offset=offset)
     total = db.get_leads_count()
     for l in leads:
@@ -1706,7 +1807,11 @@ async def create_lead_api(req: Request):
     if not _check_auth(req):
         raise HTTPException(status_code=401, detail='Unauthorized')
     payload = await req.json()
-    lead = db.create_lead(payload)
+    try:
+        validated = LeadCreate(**payload)
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f'Validation error: {e}')
+    lead = db.create_lead(validated.model_dump(exclude_none=True))
     _audit_log({'action': 'lead_created', 'lead_id': lead['id']})
     return JSONResponse(status_code=201, content=lead)
 
@@ -1717,7 +1822,11 @@ async def update_lead_api(lead_id: str, req: Request):
     if not _check_auth(req):
         raise HTTPException(status_code=401, detail='Unauthorized')
     payload = await req.json()
-    lead = db.update_lead(lead_id, payload)
+    try:
+        validated = LeadUpdate(**payload)
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f'Validation error: {e}')
+    lead = db.update_lead(lead_id, validated.model_dump(exclude_none=True))
     if not lead:
         raise HTTPException(status_code=404, detail='Lead not found')
     _audit_log({'action': 'lead_updated', 'lead_id': lead_id})
@@ -1810,7 +1919,11 @@ async def create_activity(req: Request):
     if not _check_auth(req):
         raise HTTPException(status_code=401, detail='Unauthorized')
     payload = await req.json()
-    note = db.create_activity(payload)
+    try:
+        validated = ActivityCreate(**payload)
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f'Validation error: {e}')
+    note = db.create_activity(validated.model_dump(exclude_none=True))
     _audit_log({'action': 'activity_created', 'note_id': note['id'], 'lead_id': note.get('lead_id')})
     return JSONResponse(status_code=201, content=note)
 
@@ -2174,7 +2287,11 @@ async def create_deal(req: Request):
         raise HTTPException(status_code=401, detail='Not authenticated')
     payload = await req.json()
     try:
-        deal = db.create_deal(payload)
+        validated = DealCreate(**payload)
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f'Validation error: {e}')
+    try:
+        deal = db.create_deal(validated.model_dump(exclude_none=True))
     except Exception as e:
         logging.error(f'Failed to create deal: {e}')
         raise HTTPException(status_code=500, detail=f'Failed to create deal: {e}')
