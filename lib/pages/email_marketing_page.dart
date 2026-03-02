@@ -162,38 +162,62 @@ class _PageHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    return Row(
+    final isNarrow = MediaQuery.of(context).size.width < 500;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 42, height: 42,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft, end: Alignment.bottomRight,
-              colors: [cs.primary, cs.primary.withValues(alpha: 0.75)],
+        Row(
+          children: [
+            Container(
+              width: 42, height: 42,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft, end: Alignment.bottomRight,
+                  colors: [cs.primary, cs.primary.withValues(alpha: 0.75)],
+                ),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: const Icon(Icons.email_rounded, color: Colors.white, size: 20),
             ),
-            borderRadius: BorderRadius.circular(AppRadius.sm),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Email Marketing',
+                    style: GoogleFonts.plusJakartaSans(fontSize: isNarrow ? 18 : 22, fontWeight: FontWeight.w700, color: cs.onSurface)),
+                if (!isNarrow) ...[
+                  const SizedBox(height: 2),
+                  Text('Create & send campaigns to your leads',
+                      style: tt.bodySmall?.withColor(cs.onSurfaceVariant)),
+                ],
+              ]),
+            ),
+            if (!isNarrow)
+              FilledButton.icon(
+                onPressed: onNewCampaign,
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: const Text('New Campaign'),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
+                ),
+              ),
+          ],
+        ),
+        if (isNarrow) ...[
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: onNewCampaign,
+              icon: const Icon(Icons.add_rounded, size: 18),
+              label: const Text('New Campaign'),
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
+              ),
+            ),
           ),
-          child: const Icon(Icons.email_rounded, color: Colors.white, size: 20),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Email Marketing',
-                style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.w700, color: cs.onSurface)),
-            const SizedBox(height: 2),
-            Text('Create & send campaigns to your leads',
-                style: tt.bodySmall?.withColor(cs.onSurfaceVariant)),
-          ]),
-        ),
-        FilledButton.icon(
-          onPressed: onNewCampaign,
-          icon: const Icon(Icons.add_rounded, size: 18),
-          label: const Text('New Campaign'),
-          style: FilledButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
-          ),
-        ),
+        ],
       ],
     );
   }
@@ -213,19 +237,35 @@ class _StatsRow extends StatelessWidget {
         final sent = campaigns.where((c) => c.status == CampaignStatus.sent).length;
         final totalRecipients = campaigns.where((c) => c.status == CampaignStatus.sent)
             .fold<int>(0, (sum, c) => sum + c.recipientCount);
-        return Row(children: [
-          Expanded(child: _StatCard(label: 'Total Campaigns', value: '${campaigns.length}',
-              icon: Icons.campaign_outlined, color: AppColors.info)),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(child: _StatCard(label: 'Drafts', value: '$drafts',
-              icon: Icons.edit_note_outlined, color: AppColors.warning)),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(child: _StatCard(label: 'Sent', value: '$sent',
-              icon: Icons.check_circle_outline, color: AppColors.success)),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(child: _StatCard(label: 'Emails Delivered', value: '$totalRecipients',
-              icon: Icons.mark_email_read_outlined, color: Theme.of(context).colorScheme.primary)),
-        ]);
+        return LayoutBuilder(builder: (context, constraints) {
+          final isNarrow = constraints.maxWidth < 500;
+          final children = [
+            _StatCard(label: 'Total Campaigns', value: '${campaigns.length}',
+                icon: Icons.campaign_outlined, color: AppColors.info),
+            _StatCard(label: 'Drafts', value: '$drafts',
+                icon: Icons.edit_note_outlined, color: AppColors.warning),
+            _StatCard(label: 'Sent', value: '$sent',
+                icon: Icons.check_circle_outline, color: AppColors.success),
+            _StatCard(label: 'Emails Delivered', value: '$totalRecipients',
+                icon: Icons.mark_email_read_outlined, color: Theme.of(context).colorScheme.primary),
+          ];
+          if (isNarrow) {
+            return Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: children.map((c) => SizedBox(
+                width: (constraints.maxWidth - AppSpacing.sm) / 2,
+                child: c,
+              )).toList(),
+            );
+          }
+          return Row(children: [
+            for (int i = 0; i < children.length; i++) ...[
+              if (i > 0) const SizedBox(width: AppSpacing.sm),
+              Expanded(child: children[i]),
+            ],
+          ]);
+        });
       },
     );
   }

@@ -180,7 +180,7 @@ class _LeadsPageState extends State<LeadsPage> {
         ),
         // ── Search bar ──
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width < 500 ? 12 : 20, vertical: 8),
           child: TextField(
             controller: _searchCtrl,
             onChanged: (v) => setState(() => _searchQuery = v),
@@ -215,7 +215,7 @@ class _LeadsPageState extends State<LeadsPage> {
         ValueListenableBuilder(
           valueListenable: LeadService.instance.leads,
           builder: (context, List<LeadModel> allLeads, _) => Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+            padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width < 500 ? 12 : 20, vertical: 4),
             child: _StatusPillFilter(
               selected: _selectedStatus,
               onChanged: (s) => setState(() => _selectedStatus = s),
@@ -569,13 +569,14 @@ class _TopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
+    final isNarrow = MediaQuery.of(context).size.width < 500;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 20, 16, 4),
+      padding: EdgeInsets.fromLTRB(isNarrow ? 12 : 24, isNarrow ? 12 : 20, isNarrow ? 8 : 16, 4),
       child: Row(children: [
         // Title section
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            Text('Leads', style: tt.headlineSmall?.bold.withColor(cs.onSurface).copyWith(letterSpacing: -0.5)),
+            Flexible(child: Text('Leads', style: tt.headlineSmall?.bold.withColor(cs.onSurface).copyWith(letterSpacing: -0.5, fontSize: isNarrow ? 20 : null))),
             const SizedBox(width: 10),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
@@ -591,22 +592,36 @@ class _TopBar extends StatelessWidget {
             'Sorted by $_sortLabel',
             style: tt.labelMedium?.withColor(cs.onSurface.withValues(alpha: 0.4)),
           ),
-        ]),
-        const Spacer(),
+        ])),
         // Bulk toggle
         _BarButton(
           icon: bulkMode ? Icons.close_rounded : Icons.checklist_rounded,
           label: bulkMode ? 'Cancel Select' : 'Select',
           onTap: onToggleBulk,
         ),
-        const SizedBox(width: 4),
-        // Action buttons
-        _BarButton(icon: Icons.download_rounded, label: 'Export', onTap: onExport),
-        const SizedBox(width: 4),
-        // "Delete All" button removed — too dangerous, use bulk select instead
-        _BarButton(icon: Icons.calendar_today_rounded, label: 'Calendar', onTap: onCalendar),
+        if (!isNarrow) ...[
+          const SizedBox(width: 4),
+          _BarButton(icon: Icons.download_rounded, label: 'Export', onTap: onExport),
+          const SizedBox(width: 4),
+          _BarButton(icon: Icons.calendar_today_rounded, label: 'Calendar', onTap: onCalendar),
+        ],
         const SizedBox(width: 4),
         _BarButton(icon: Icons.sort_rounded, label: 'Sort', onTap: onMenu),
+        if (isNarrow) ...[
+          const SizedBox(width: 4),
+          PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert_rounded, size: 19, color: cs.onSurface.withValues(alpha: 0.55)),
+            tooltip: 'More actions',
+            onSelected: (v) {
+              if (v == 'export') onExport();
+              if (v == 'calendar') onCalendar();
+            },
+            itemBuilder: (_) => [
+              const PopupMenuItem(value: 'export', child: Text('Export')),
+              const PopupMenuItem(value: 'calendar', child: Text('Calendar')),
+            ],
+          ),
+        ],
       ]),
     );
   }

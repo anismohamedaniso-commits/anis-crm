@@ -17,6 +17,7 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   bool _collapsed = false;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   // ── Destination groups ────────────────────────────────────────────────────
   static final _coreSection = <_NavDestination>[
@@ -227,26 +228,66 @@ class _AppShellState extends State<AppShell> {
       );
     }
 
-    // ── NARROW: bottom navigation bar ─────────────────────────────────────
-    final flatDest = _flat();
-    final selIdx = flatDest.indexWhere((d) => location.startsWith(d.path)).clamp(0, flatDest.length - 1);
+    // ── NARROW: bottom bar (5 key items) + drawer for the rest ──────────
+    // Only show the 5 most important nav items on the bottom bar
+    const _mobileBottomItems = <(String, IconData, IconData, String)>[
+      ('Home',     Icons.space_dashboard_outlined,  Icons.space_dashboard_rounded,  '/app/dashboard'),
+      ('Leads',    Icons.people_outline,            Icons.people_rounded,           '/app/leads'),
+      ('Pipeline', Icons.view_kanban_outlined,      Icons.view_kanban_rounded,      '/app/pipeline'),
+      ('Tasks',    Icons.task_outlined,             Icons.task_rounded,             '/app/tasks'),
+      ('More',     Icons.menu_rounded,              Icons.menu_rounded,             '__drawer__'),
+    ];
+
+    final mobileSelIdx = _mobileBottomItems.indexWhere((d) => d.$4 != '__drawer__' && location.startsWith(d.$4));
+    final clampedIdx = mobileSelIdx < 0 ? 4 : mobileSelIdx; // default to "More" if current page isn't in bottom 4
+
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      drawer: _MobileDrawer(
+        sections: [
+          ('Core', _coreSection),
+          ('Tools', _toolsSection),
+          ('Collaborate', _collabSection),
+          if (isAdmin) ('Admin', _adminSection),
+        ],
+        location: location,
+        user: user,
+        cs: cs,
+        tt: tt,
+        dk: dk,
+        onNav: (path) {
+          Navigator.of(context).pop(); // close drawer
+          _go(context, path);
+        },
+        onLogout: () async {
+          Navigator.of(context).pop();
+          await AuthService.instance.logout();
+          if (context.mounted) context.go('/login');
+        },
+      ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
+          padding: const EdgeInsets.all(AppSpacing.sm),
           child: widget.child,
         ),
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: selIdx,
-        onDestinationSelected: (i) => _go(context, flatDest[i].path),
+        selectedIndex: clampedIdx,
+        onDestinationSelected: (i) {
+          if (_mobileBottomItems[i].$4 == '__drawer__') {
+            _scaffoldKey.currentState?.openDrawer();
+          } else {
+            _go(context, _mobileBottomItems[i].$4);
+          }
+        },
         height: 64,
-        destinations: flatDest
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        destinations: _mobileBottomItems
             .map((d) => NavigationDestination(
-                  icon: Icon(d.icon, size: 22),
-                  selectedIcon: Icon(d.selectedIcon, size: 22),
-                  label: d.label,
+                  icon: Icon(d.$2, size: 22),
+                  selectedIcon: Icon(d.$3, size: 22),
+                  label: d.$1,
                 ))
             .toList(),
       ),
@@ -446,4 +487,160 @@ class _NavDestination {
   final String path;
   final bool accountExecOnly;
   const _NavDestination(this.label, this.icon, this.selectedIcon, this.path, {this.accountExecOnly = false});
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MOBILE DRAWER — full nav for narrow screens
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _MobileDrawer extends StatelessWidget {
+  const _MobileDrawer({
+    required this.sections,
+    required this.location,
+    required this.user,
+    required this.cs,
+    required this.tt,
+    required this.dk,
+    required this.onNav,
+    required this.onLogout,
+  });
+  final List<(String, List<_NavDestination>)> sections;
+  final String location;
+  final CrmUser? user;
+  final ColorScheme cs;
+  final TextTheme tt;
+  final bool dk;
+  final ValueChanged<String> onNav;
+  final VoidCallback onLogout;
+
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      backgroundColor: dk ? const Color(0xFF141418) : const Color(0xFFFAFAFC),
+      child: SafeArea(
+        child: Column(children: [
+          // ── Header ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 8),
+            child: Row(children: [
+              Expanded(
+                child: Image.asset(
+                  dk ? AppBrand.logoWhiteAsset : AppBrand.logoBlackAsset,
+                  height: 28,
+                  fit: BoxFit.contain,
+                  alignment: Alignment.centerLeft,
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.close_rounded, size: 20, color: cs.onSurface.withValues(alpha: 0.5)),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ]),
+          ),
+
+          // ── Nav sections ──
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                for (final (label, items) in sections) ...[
+                  Padding(
+                    padding: const EdgeInsets.only(left: 12, top: 14, bottom: 6),
+                    child: Text(label,
+                        style: tt.labelSmall?.copyWith(
+                            fontSize: 10, fontWeight: FontWeight.w700, color: cs.onSurface.withValues(alpha: 0.32), letterSpacing: 1.2)),
+                  ),
+                  ...items.map((d) => _DrawerNavItem(
+                        dest: d,
+                        active: location.startsWith(d.path),
+                        onTap: () => onNav(d.path),
+                      )),
+                ],
+              ]),
+            ),
+          ),
+
+          // ── Footer: user ──
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: cs.outline.withValues(alpha: dk ? 0.06 : 0.05))),
+            ),
+            child: Row(children: [
+              _UserAvatarWidget(user: user, size: 32, cs: cs),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(user?.name ?? 'User',
+                      style: tt.bodyMedium?.semiBold.withColor(cs.onSurface),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(
+                    user?.role == UserRole.accountExecutive ? 'Account Executive' : 'Campaign Executive',
+                    style: tt.labelSmall?.copyWith(fontSize: 10, color: cs.onSurface.withValues(alpha: 0.4)),
+                  ),
+                ]),
+              ),
+              IconButton(
+                icon: Icon(Icons.logout_rounded, size: 18, color: cs.onSurface.withValues(alpha: 0.4)),
+                tooltip: 'Sign out',
+                onPressed: onLogout,
+              ),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+class _DrawerNavItem extends StatelessWidget {
+  const _DrawerNavItem({required this.dest, required this.active, required this.onTap});
+  final _NavDestination dest;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final dk = Theme.of(context).brightness == Brightness.dark;
+    final tt = Theme.of(context).textTheme;
+
+    final bgColor = active
+        ? cs.primary.withValues(alpha: dk ? 0.14 : 0.08)
+        : Colors.transparent;
+    final fgColor = active
+        ? cs.primary
+        : cs.onSurface.withValues(alpha: 0.55);
+
+    final icon = active ? dest.selectedIcon : dest.icon;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          height: 42,
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(10),
+            border: active ? Border.all(color: cs.primary.withValues(alpha: 0.12)) : null,
+          ),
+          child: Row(children: [
+            const SizedBox(width: 12),
+            Icon(icon, size: 20, color: fgColor),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(dest.label,
+                  style: tt.bodyMedium?.copyWith(
+                    fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                    color: fgColor,
+                    letterSpacing: -0.1,
+                  ),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
 }

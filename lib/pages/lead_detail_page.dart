@@ -115,7 +115,10 @@ class _LeadDetailPageState extends State<LeadDetailPage> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         _LeadSummaryCard(loading: _loading, lead: _lead),
         const SizedBox(height: 16),
-        SizedBox(height: 600, child: _TabbedRightPanel(lead: _lead)),
+        SizedBox(
+          height: MediaQuery.of(context).size.height * 0.6,
+          child: _TabbedRightPanel(lead: _lead),
+        ),
       ]),
     );
   }
@@ -158,6 +161,71 @@ class _LeadHeroBand extends StatelessWidget {
 
   Widget _buildRow(BuildContext context, ColorScheme cs, Color statusColor, AppState app) {
     final l = lead!;
+    final isNarrow = MediaQuery.of(context).size.width < 600;
+
+    final actionButtons = [
+      _ActionIconBtn(icon: Icons.call_rounded, label: 'Call', color: const Color(0xFF4CAF50), enabled: _hasPhone(lead), onTap: !_hasPhone(lead) ? null : () async {
+        final ok = await SocialLauncher.dialPhone(l.phone!);
+        await ActivityService.instance.add(leadId: l.id, type: ActivityType.call, text: ok ? 'Call launched' : 'Call failed');
+        await LeadService.instance.setLastContacted(l.id, DateTime.now());
+      }),
+      const SizedBox(width: 6),
+      _ActionIconBtn(icon: Icons.chat_bubble_rounded, label: 'WhatsApp', color: const Color(0xFF25D366), enabled: _hasPhone(lead), onTap: !_hasPhone(lead) ? null : () async {
+        final ok = await SocialLauncher.openWhatsApp(phone: l.phone!, message: 'Hi ${l.name}!');
+        await ActivityService.instance.add(leadId: l.id, type: ActivityType.message, text: ok ? 'WhatsApp opened' : 'WhatsApp unavailable');
+        await LeadService.instance.setLastContacted(l.id, DateTime.now());
+      }),
+      const SizedBox(width: 6),
+      _ActionIconBtn(icon: Icons.mail_outlined, label: 'Email', color: const Color(0xFF2196F3), enabled: _hasEmail(lead), onTap: !_hasEmail(lead) ? null : () async {
+        final ok = await SocialLauncher.composeEmail(to: l.email!, subject: 'Hello ${l.name}', body: '');
+        await ActivityService.instance.add(leadId: l.id, type: ActivityType.message, text: ok ? 'Email opened' : 'Email unavailable');
+        await LeadService.instance.setLastContacted(l.id, DateTime.now());
+      }),
+      if ((AuthService.instance.user?.canEditLeads ?? false) || (AuthService.instance.user?.canDeleteLeads ?? false))
+        Container(width: 1, height: 28, margin: const EdgeInsets.symmetric(horizontal: 10), color: cs.outline.withValues(alpha: 0.2)),
+      if (AuthService.instance.user?.canEditLeads ?? false) _IconBtn(icon: Icons.edit_outlined, tooltip: 'Edit', onTap: () => showDialog(context: context, builder: (_) => _EditLeadDialog(lead: l))),
+      if (AuthService.instance.user?.canDeleteLeads ?? false) ...[const SizedBox(width: 4), _IconBtn(icon: Icons.delete_outline, tooltip: 'Delete', color: cs.error, onTap: () => _confirmDelete(context, l))],
+    ];
+
+    if (isNarrow) {
+      // Stacked layout for phones
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          InkWell(
+            onTap: onBack,
+            borderRadius: BorderRadius.circular(6),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.arrow_back_ios_new_rounded, size: 13, color: cs.primary),
+              const SizedBox(width: 4),
+              Text('Leads', style: TextStyle(fontSize: 12, color: cs.primary, fontWeight: FontWeight.w500)),
+            ]),
+          ),
+          Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Icon(Icons.chevron_right, size: 14, color: cs.onSurfaceVariant.withValues(alpha: 0.3))),
+          Container(
+            width: 32, height: 32,
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: statusColor.withValues(alpha: 0.3), width: 1.5),
+            ),
+            child: Center(child: Text(_initials(l.name), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: statusColor))),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(l.name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: -0.2), overflow: TextOverflow.ellipsis),
+          ),
+          const SizedBox(width: 6),
+          _StatusPill(status: l.status),
+        ]),
+        const SizedBox(height: 8),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(mainAxisSize: MainAxisSize.min, children: actionButtons),
+        ),
+      ]);
+    }
+
+    // Wide layout (original)
     return Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
       // ── Identity zone ──
       InkWell(
@@ -198,29 +266,7 @@ class _LeadHeroBand extends StatelessWidget {
       ),
       const Spacer(),
       // ── Action zone ──
-      Row(mainAxisSize: MainAxisSize.min, children: [
-        _ActionIconBtn(icon: Icons.call_rounded, label: 'Call', color: const Color(0xFF4CAF50), enabled: _hasPhone(lead), onTap: !_hasPhone(lead) ? null : () async {
-          final ok = await SocialLauncher.dialPhone(l.phone!);
-          await ActivityService.instance.add(leadId: l.id, type: ActivityType.call, text: ok ? 'Call launched' : 'Call failed');
-          await LeadService.instance.setLastContacted(l.id, DateTime.now());
-        }),
-        const SizedBox(width: 6),
-        _ActionIconBtn(icon: Icons.chat_bubble_rounded, label: 'WhatsApp', color: const Color(0xFF25D366), enabled: _hasPhone(lead), onTap: !_hasPhone(lead) ? null : () async {
-          final ok = await SocialLauncher.openWhatsApp(phone: l.phone!, message: 'Hi ${l.name}!');
-          await ActivityService.instance.add(leadId: l.id, type: ActivityType.message, text: ok ? 'WhatsApp opened' : 'WhatsApp unavailable');
-          await LeadService.instance.setLastContacted(l.id, DateTime.now());
-        }),
-        const SizedBox(width: 6),
-        _ActionIconBtn(icon: Icons.mail_outlined, label: 'Email', color: const Color(0xFF2196F3), enabled: _hasEmail(lead), onTap: !_hasEmail(lead) ? null : () async {
-          final ok = await SocialLauncher.composeEmail(to: l.email!, subject: 'Hello ${l.name}', body: '');
-          await ActivityService.instance.add(leadId: l.id, type: ActivityType.message, text: ok ? 'Email opened' : 'Email unavailable');
-          await LeadService.instance.setLastContacted(l.id, DateTime.now());
-        }),
-        if ((AuthService.instance.user?.canEditLeads ?? false) || (AuthService.instance.user?.canDeleteLeads ?? false))
-          Container(width: 1, height: 28, margin: const EdgeInsets.symmetric(horizontal: 10), color: cs.outline.withValues(alpha: 0.2)),
-        if (AuthService.instance.user?.canEditLeads ?? false) _IconBtn(icon: Icons.edit_outlined, tooltip: 'Edit', onTap: () => showDialog(context: context, builder: (_) => _EditLeadDialog(lead: l))),
-        if (AuthService.instance.user?.canDeleteLeads ?? false) ...[const SizedBox(width: 4), _IconBtn(icon: Icons.delete_outline, tooltip: 'Delete', color: cs.error, onTap: () => _confirmDelete(context, l))],
-      ]),
+      Row(mainAxisSize: MainAxisSize.min, children: actionButtons),
     ]);
   }
 }

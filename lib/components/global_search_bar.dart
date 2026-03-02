@@ -137,8 +137,10 @@ class _GlobalSearchBarState extends State<GlobalSearchBar> {
   void _showOverlay() {
     _removeOverlay();
     _overlayEntry = OverlayEntry(builder: (ctx) {
+      final screenW = MediaQuery.of(context).size.width;
+      final overlayW = screenW < 400 ? screenW - 32 : 360.0;
       return Positioned(
-        width: 360,
+        width: overlayW,
         child: CompositedTransformFollower(
           link: _layerLink,
           offset: const Offset(0, 44),
@@ -181,9 +183,8 @@ class _GlobalSearchBarState extends State<GlobalSearchBar> {
     final dk = Theme.of(context).brightness == Brightness.dark;
     return CompositedTransformTarget(
       link: _layerLink,
-      child: SizedBox(
-        width: 280,
-        height: 38,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 280, minWidth: 120, maxHeight: 38, minHeight: 38),
         child: TextField(
           controller: _controller,
           focusNode: _focusNode,

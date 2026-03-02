@@ -43,8 +43,11 @@ class _KpiDashboardPageState extends State<KpiDashboardPage> {
         const SizedBox(height: AppSpacing.lg),
 
         // ── KPI Targets ──────────────────────────────────────────────
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             Text('Active Targets', style: Theme.of(context).textTheme.titleLarge),
             FilledButton.tonalIcon(
@@ -160,7 +163,7 @@ class _KpiDashboardPageState extends State<KpiDashboardPage> {
         builder: (ctx, setDialogState) => AlertDialog(
           title: Text(isEditing ? 'Edit Target' : 'Add New Target'),
           content: SizedBox(
-            width: 400,
+            width: MediaQuery.of(context).size.width < 500 ? double.infinity : 400,
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               TextField(
                 controller: labelCtrl,
