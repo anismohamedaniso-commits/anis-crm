@@ -119,7 +119,9 @@ ALLOWED_ORIGINS = (
     if _cors_origins_raw
     else ['http://localhost:3000', 'http://127.0.0.1:3000',
           'http://localhost:8080', 'http://127.0.0.1:8080',
-          'http://localhost:8000', 'http://127.0.0.1:8000']
+          'http://localhost:8000', 'http://127.0.0.1:8000',
+          'https://tickandtalkcrm.netlify.app',
+          'https://aesthetic-entremet-ab9ef2.netlify.app']
 )
 
 # =============================================================================
