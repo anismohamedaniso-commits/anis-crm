@@ -84,7 +84,8 @@ class CrmDatabase:
     _TABLE_COLS = {
         'leads': {'id', 'name', 'phone', 'email', 'status', 'source', 'campaign',
                   'deal_value', 'assigned_to', 'assigned_to_name', 'tags',
-                  'created_at', 'updated_at', 'last_contacted_at', 'next_followup_at'},
+                  'created_at', 'updated_at', 'last_contacted_at', 'next_followup_at',
+                  'country'},
         'activities': {'id', 'lead_id', 'type', 'body', 'ts', 'author'},
         'tasks': {'id', 'lead_id', 'title', 'due_date', 'assigned_to',
                   'status', 'priority', 'created_at', 'updated_at'},

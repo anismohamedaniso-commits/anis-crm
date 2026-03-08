@@ -130,6 +130,7 @@ class LeadService {
       lastContactedAt: _parseDate(m['last_contacted_at']),
       nextFollowupAt: _parseDate(m['next_followup_at']),
       dealValue: (m['deal_value'] as num?)?.toDouble(),
+      country: m['country'] as String? ?? 'egypt',
     );
   }
 
@@ -148,6 +149,7 @@ class LeadService {
       'last_contacted_at': lead.lastContactedAt?.toUtc().toIso8601String(),
       'next_followup_at': lead.nextFollowupAt?.toUtc().toIso8601String(),
       'deal_value': lead.dealValue,
+      'country': lead.country,
     };
   }
 
@@ -233,6 +235,7 @@ class LeadService {
     String? campaign,
     DateTime? createdAt,
     double? dealValue,
+    String country = 'egypt',
   }) async {
     final now = DateTime.now();
     final lead = LeadModel(
@@ -246,6 +249,7 @@ class LeadService {
       createdAt: createdAt ?? now,
       updatedAt: now,
       dealValue: dealValue,
+      country: country,
     );
     debugPrint('LeadService.create name="$name" status=${status.name}');
     final list = [...leads.value, lead];

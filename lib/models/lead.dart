@@ -16,6 +16,7 @@ class LeadModel {
   final String? assignedTo;
   final String? assignedToName;
   final double? dealValue;
+  final String country;
 
   const LeadModel({
     required this.id,
@@ -32,6 +33,7 @@ class LeadModel {
     this.assignedTo,
     this.assignedToName,
     this.dealValue,
+    this.country = 'egypt',
   });
 
   LeadModel copyWith({
@@ -49,6 +51,7 @@ class LeadModel {
     String? assignedTo,
     String? assignedToName,
     double? dealValue,
+    String? country,
   }) => LeadModel(
         id: id ?? this.id,
         name: name ?? this.name,
@@ -64,6 +67,7 @@ class LeadModel {
         assignedTo: assignedTo ?? this.assignedTo,
         assignedToName: assignedToName ?? this.assignedToName,
         dealValue: dealValue ?? this.dealValue,
+        country: country ?? this.country,
       );
 
   Map<String, dynamic> toJson() => {
@@ -81,6 +85,7 @@ class LeadModel {
         'assigned_to': assignedTo,
         'assigned_to_name': assignedToName,
         'deal_value': dealValue,
+        'country': country,
       };
 
   factory LeadModel.fromJson(Map<String, dynamic> json) => LeadModel(
@@ -98,6 +103,7 @@ class LeadModel {
         assignedTo: json['assigned_to'] as String?,
         assignedToName: json['assigned_to_name'] as String?,
         dealValue: (json['deal_value'] as num?)?.toDouble(),
+        country: json['country'] as String? ?? 'egypt',
       );
 }
 

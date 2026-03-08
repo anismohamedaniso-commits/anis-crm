@@ -31,7 +31,8 @@ create table if not exists public.leads (
   created_at         text not null default '',
   updated_at         text not null default '',
   last_contacted_at  text default null,
-  next_followup_at   text default null
+  next_followup_at   text default null,
+  country            text not null default 'egypt'
 );
 
 create index if not exists idx_leads_status     on public.leads(status);

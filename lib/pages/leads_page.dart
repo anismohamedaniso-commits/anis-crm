@@ -106,7 +106,8 @@ Color _avatarColor(String name) {
 // =============================================================================
 
 class LeadsPage extends StatefulWidget {
-  const LeadsPage({super.key});
+  const LeadsPage({super.key, this.countryFilter = 'egypt'});
+  final String countryFilter;
   @override
   State<LeadsPage> createState() => _LeadsPageState();
 }
@@ -135,6 +136,8 @@ class _LeadsPageState extends State<LeadsPage> {
 
   List<LeadModel> _applyFilters(List<LeadModel> leads) {
     return leads.where((l) {
+      // Country filter
+      final countryOk = l.country == widget.countryFilter;
       // Status filter
       final statusOk = _selectedStatus == null || l.status == _selectedStatus;
       // Search filter
@@ -144,7 +147,7 @@ class _LeadsPageState extends State<LeadsPage> {
           (l.phone?.toLowerCase().contains(q) ?? false) ||
           (l.email?.toLowerCase().contains(q) ?? false) ||
           (l.campaign?.toLowerCase().contains(q) ?? false);
-      return statusOk && searchOk;
+      return countryOk && statusOk && searchOk;
     }).toList()
       ..sort((a, b) {
         switch (_sortBy) {
@@ -169,11 +172,12 @@ class _LeadsPageState extends State<LeadsPage> {
       body: Column(children: [
         // ── Top bar ──
         _TopBar(
+          title: widget.countryFilter == 'saudi_arabia' ? 'Saudi Arabia Leads' : 'Egypt Leads',
           onExport: () => _exportExcel(context),
           onDeleteAll: () => _deleteAllLeads(context),
           onCalendar: () => context.go('/app/calendar'),
           onMenu: () => _showSortMenu(context),
-          leadCount: LeadService.instance.leads.value.length,
+          leadCount: _applyFilters(LeadService.instance.leads.value).length,
           sortBy: _sortBy,
           bulkMode: _bulkMode,
           onToggleBulk: () => setState(() { _bulkMode = !_bulkMode; _selectedIds.clear(); }),
@@ -280,7 +284,7 @@ class _LeadsPageState extends State<LeadsPage> {
         children: [
           FloatingActionButton.small(
             heroTag: 'import',
-            onPressed: () => showDialog(context: context, builder: (_) => const _ImportLeadsDialog()),
+            onPressed: () => showDialog(context: context, builder: (_) => _ImportLeadsDialog(country: widget.countryFilter)),
             backgroundColor: cs.surfaceContainerHighest,
             foregroundColor: cs.onSurface,
             elevation: 2,
@@ -291,7 +295,7 @@ class _LeadsPageState extends State<LeadsPage> {
           FloatingActionButton.extended(
             heroTag: 'newLead',
             onPressed: () async {
-              final created = await showDialog<LeadModel>(context: context, builder: (_) => const _LeadEditorDialog());
+              final created = await showDialog<LeadModel>(context: context, builder: (_) => _LeadEditorDialog(country: widget.countryFilter));
               if (created != null && mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                   behavior: SnackBarBehavior.floating,
@@ -547,6 +551,7 @@ class _LeadsPageState extends State<LeadsPage> {
 // =============================================================================
 
 class _TopBar extends StatelessWidget {
+  final String title;
   final VoidCallback onExport;
   final VoidCallback onDeleteAll;
   final VoidCallback onCalendar;
@@ -555,7 +560,7 @@ class _TopBar extends StatelessWidget {
   final String sortBy;
   final bool bulkMode;
   final VoidCallback onToggleBulk;
-  const _TopBar({required this.onExport, required this.onDeleteAll, required this.onCalendar, required this.onMenu, this.leadCount = 0, this.sortBy = 'newest', this.bulkMode = false, required this.onToggleBulk});
+  const _TopBar({this.title = 'Leads', required this.onExport, required this.onDeleteAll, required this.onCalendar, required this.onMenu, this.leadCount = 0, this.sortBy = 'newest', this.bulkMode = false, required this.onToggleBulk});
 
   String get _sortLabel => switch (sortBy) {
     'oldest' => 'Oldest',
@@ -576,7 +581,7 @@ class _TopBar extends StatelessWidget {
         // Title section
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            Flexible(child: Text('Leads', style: tt.headlineSmall?.bold.withColor(cs.onSurface).copyWith(letterSpacing: -0.5, fontSize: isNarrow ? 20 : null))),
+            Flexible(child: Text(title, style: tt.headlineSmall?.bold.withColor(cs.onSurface).copyWith(letterSpacing: -0.5, fontSize: isNarrow ? 20 : null))),
             const SizedBox(width: 10),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
@@ -1354,7 +1359,8 @@ class _EmptyState extends StatelessWidget {
 // =============================================================================
 
 class _LeadEditorDialog extends StatefulWidget {
-  const _LeadEditorDialog();
+  const _LeadEditorDialog({this.country = 'egypt'});
+  final String country;
   @override
   State<_LeadEditorDialog> createState() => _LeadEditorDialogState();
 }
@@ -1392,7 +1398,10 @@ class _LeadEditorDialogState extends State<_LeadEditorDialog> {
           const SizedBox(height: 8),
           TextField(
             controller: _dealValue,
-            decoration: const InputDecoration(labelText: 'Deal Value (EGP)', prefixText: 'EGP '),
+            decoration: InputDecoration(
+              labelText: widget.country == 'saudi_arabia' ? 'Deal Value (SAR)' : 'Deal Value (EGP)',
+              prefixText: widget.country == 'saudi_arabia' ? 'SAR ' : 'EGP ',
+            ),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
           ),
           const SizedBox(height: 8),
@@ -1463,6 +1472,7 @@ class _LeadEditorDialogState extends State<_LeadEditorDialog> {
         source: _source,
         status: _status,
         dealValue: double.tryParse(_dealValue.text.trim()),
+        country: widget.country,
       );
       if (context.mounted) Navigator.of(context).pop(created);
     } catch (e) {
@@ -1478,7 +1488,8 @@ class _LeadEditorDialogState extends State<_LeadEditorDialog> {
 // =============================================================================
 
 class _ImportLeadsDialog extends StatefulWidget {
-  const _ImportLeadsDialog();
+  const _ImportLeadsDialog({this.country = 'egypt'});
+  final String country;
   @override
   State<_ImportLeadsDialog> createState() => _ImportLeadsDialogState();
 }
@@ -1714,6 +1725,7 @@ class _ImportLeadsDialogState extends State<_ImportLeadsDialog> {
             email: email?.isEmpty == true ? null : email,
             source: source,
             createdAt: createdAt,
+            country: widget.country,
           );
           ok++;
         }

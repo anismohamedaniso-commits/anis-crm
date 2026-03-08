@@ -22,7 +22,8 @@ class _AppShellState extends State<AppShell> {
   // ── Destination groups ────────────────────────────────────────────────────
   static final _coreSection = <_NavDestination>[
     _NavDestination('Dashboard', Icons.space_dashboard_outlined, Icons.space_dashboard_rounded, '/app/dashboard'),
-    _NavDestination('Leads', Icons.people_outline, Icons.people_rounded, '/app/leads'),
+    _NavDestination('Egypt Leads', Icons.people_outline, Icons.people_rounded, '/app/leads'),
+    _NavDestination('Saudi Leads', Icons.people_outline, Icons.people_rounded, '/app/leads-sa'),
     _NavDestination('Pipeline', Icons.view_kanban_outlined, Icons.view_kanban_rounded, '/app/pipeline'),
     _NavDestination('Calendar', Icons.calendar_today_outlined, Icons.calendar_today_rounded, '/app/calendar'),
     _NavDestination('KPIs', Icons.track_changes_outlined, Icons.track_changes_rounded, '/app/kpis'),

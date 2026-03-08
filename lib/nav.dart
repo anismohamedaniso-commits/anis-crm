@@ -84,6 +84,11 @@ class AppRouter {
             pageBuilder: (context, state) => FadeTransitionPage(child: const LeadsPage()),
           ),
           GoRoute(
+            path: AppRoutes.leadsSA,
+            name: 'leadsSA',
+            pageBuilder: (context, state) => FadeTransitionPage(child: const LeadsPage(countryFilter: 'saudi_arabia')),
+          ),
+          GoRoute(
             path: AppRoutes.pipeline,
             name: 'pipeline',
             pageBuilder: (context, state) => FadeTransitionPage(child: const PipelinePage()),
@@ -177,6 +182,7 @@ class AppRoutes {
   static const String dashboard = '/app/dashboard';
   static const String leadDetail = '/app/lead/:id';
   static const String leads = '/app/leads';
+  static const String leadsSA = '/app/leads-sa';
   static const String pipeline = '/app/pipeline';
   static const String calendar = '/app/calendar';
   static const String emailMarketing = '/app/email-marketing';
