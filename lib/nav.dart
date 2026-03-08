@@ -23,6 +23,7 @@ import 'package:anis_crm/pages/reports_page.dart';
 import 'package:anis_crm/pages/automation_page.dart';
 import 'package:anis_crm/pages/custom_fields_page.dart';
 import 'package:anis_crm/pages/masterclass_page.dart';
+import 'package:anis_crm/pages/campaigns_page.dart';
 import 'package:anis_crm/services/auth_service.dart';
 import 'package:anis_crm/utils/page_transitions.dart';
 
@@ -163,6 +164,11 @@ class AppRouter {
             name: 'masterclass',
             pageBuilder: (context, state) => FadeTransitionPage(child: const MasterclassPage()),
           ),
+          GoRoute(
+            path: AppRoutes.campaigns,
+            name: 'campaigns',
+            pageBuilder: (context, state) => FadeTransitionPage(child: const CampaignsPage()),
+          ),
         ],
       ),
     ],
@@ -195,4 +201,5 @@ class AppRoutes {
   static const String automation = '/app/automation';
   static const String customFields = '/app/custom-fields';
   static const String masterclass = '/app/masterclass';
+  static const String campaigns = '/app/campaigns';
 }

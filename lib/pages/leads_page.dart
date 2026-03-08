@@ -5,6 +5,7 @@ import 'package:anis_crm/engine/lead_score_engine.dart';
 import 'package:anis_crm/models/lead.dart';
 import 'package:anis_crm/models/activity.dart';
 import 'package:anis_crm/services/lead_service.dart';
+import 'package:anis_crm/services/campaign_service.dart';
 import 'package:anis_crm/services/activity_service.dart';
 import 'package:anis_crm/services/social_launcher.dart';
 import 'package:anis_crm/services/auth_service.dart';
@@ -1277,7 +1278,10 @@ class _MobileList extends StatelessWidget {
                 const SizedBox(width: 8),
                 if (lead.campaign != null && lead.campaign!.isNotEmpty)
                   Expanded(
-                    child: Text(lead.campaign!, style: tt.labelMedium?.withColor(cs.onSurface.withValues(alpha: 0.4)), overflow: TextOverflow.ellipsis),
+                    child: Builder(builder: (_) {
+                      final cName = CampaignService.instance.byId(lead.campaign!)?.name ?? lead.campaign!;
+                      return Text(cName, style: tt.labelMedium?.withColor(cs.onSurface.withValues(alpha: 0.4)), overflow: TextOverflow.ellipsis);
+                    }),
                   )
                 else
                   const Spacer(),
@@ -1377,7 +1381,7 @@ class _LeadEditorDialogState extends State<_LeadEditorDialog> {
   final _name = TextEditingController();
   final _phone = TextEditingController();
   final _email = TextEditingController();
-  final _campaign = TextEditingController();
+  String? _campaignId;
   final _dealValue = TextEditingController();
   LeadSource _source = LeadSource.whatsapp;
   LeadStatus _status = LeadStatus.fresh;
@@ -1388,7 +1392,6 @@ class _LeadEditorDialogState extends State<_LeadEditorDialog> {
     _name.dispose();
     _phone.dispose();
     _email.dispose();
-    _campaign.dispose();
     _dealValue.dispose();
     super.dispose();
   }
@@ -1402,7 +1405,24 @@ class _LeadEditorDialogState extends State<_LeadEditorDialog> {
           TextField(controller: _name, decoration: const InputDecoration(labelText: 'Name')),
           TextField(controller: _phone, decoration: const InputDecoration(labelText: 'Phone')),
           TextField(controller: _email, decoration: const InputDecoration(labelText: 'Email')),
-          TextField(controller: _campaign, decoration: const InputDecoration(labelText: 'Campaign')),
+          Builder(builder: (context) {
+            final marketId = context.read<AppState>().selectedMarketId;
+            final campaigns = CampaignService.instance.forMarket(marketId);
+            return Row(children: [
+              const Text('Campaign:'),
+              const SizedBox(width: 8),
+              Flexible(child: DropdownButton<String?>(
+                value: _campaignId,
+                isExpanded: true,
+                hint: const Text('None'),
+                items: [
+                  const DropdownMenuItem<String?>(value: null, child: Text('None')),
+                  ...campaigns.map((c) => DropdownMenuItem<String?>(value: c.id, child: Text(c.name))),
+                ],
+                onChanged: (v) => setState(() => _campaignId = v),
+              )),
+            ]);
+          }),
           const SizedBox(height: 8),
           TextField(
             controller: _dealValue,
@@ -1476,7 +1496,7 @@ class _LeadEditorDialogState extends State<_LeadEditorDialog> {
         name: name,
         phone: phone.isEmpty ? null : phone,
         email: email.isEmpty ? null : email,
-        campaign: _campaign.text.trim().isEmpty ? null : _campaign.text.trim(),
+        campaign: _campaignId,
         source: _source,
         status: _status,
         dealValue: double.tryParse(_dealValue.text.trim()),

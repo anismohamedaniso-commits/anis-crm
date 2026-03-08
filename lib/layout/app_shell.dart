@@ -27,6 +27,7 @@ class _AppShellState extends State<AppShell> {
     _NavDestination('Pipeline', Icons.view_kanban_outlined, Icons.view_kanban_rounded, '/app/pipeline'),
     _NavDestination('Calendar', Icons.calendar_today_outlined, Icons.calendar_today_rounded, '/app/calendar'),
     _NavDestination('KPIs', Icons.track_changes_outlined, Icons.track_changes_rounded, '/app/kpis'),
+    _NavDestination('Campaigns', Icons.campaign_outlined, Icons.campaign_rounded, '/app/campaigns'),
     _NavDestination('Email', Icons.email_outlined, Icons.email_rounded, '/app/email-marketing'),
   ];
 

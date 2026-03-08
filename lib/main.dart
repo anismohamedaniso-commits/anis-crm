@@ -6,6 +6,7 @@ import 'package:anis_crm/state/app_state.dart';
 import 'package:anis_crm/services/lead_service.dart';
 import 'package:anis_crm/services/activity_service.dart';
 import 'package:anis_crm/services/kpi_service.dart';
+import 'package:anis_crm/services/campaign_service.dart';
 import 'package:anis_crm/supabase/supabase_config.dart';
 import 'package:anis_crm/services/channel_service.dart';
 import 'package:anis_crm/services/ai_executor.dart';
@@ -75,6 +76,10 @@ Future<void> main() async {
     await KpiService.instance.load();
     debugPrint('KpiService loaded');
 
+    debugPrint('Loading CampaignService...');
+    await CampaignService.instance.load();
+    debugPrint('CampaignService loaded');
+
     final appState = AppState();
     debugPrint('Loading AppState...');
     await appState.init();
@@ -110,6 +115,7 @@ Future<void> main() async {
         KpiService.instance.reset();
         LeadService.instance.load();
         KpiService.instance.load();
+        CampaignService.instance.load();
         NotificationService.instance.startPolling();
       } else {
         LeadService.instance.reset();
