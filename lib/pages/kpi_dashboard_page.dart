@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
+import 'package:provider/provider.dart';
 import 'package:anis_crm/components/brand_logo.dart';
 import 'package:anis_crm/models/kpi_target.dart';
 import 'package:anis_crm/models/lead.dart';
 import 'package:anis_crm/services/kpi_service.dart';
 import 'package:anis_crm/services/lead_service.dart';
+import 'package:anis_crm/state/app_state.dart';
 import 'package:anis_crm/theme.dart';
 
 /// Full-featured KPIs & Targets dashboard page.
@@ -261,7 +263,9 @@ class _OverviewCards extends StatelessWidget {
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
       valueListenable: LeadService.instance.leads,
-      builder: (context, List<LeadModel> leads, _) {
+      builder: (context, List<LeadModel> allLeads, _) {
+        final marketId = context.watch<AppState>().selectedMarketId;
+        final leads = allLeads.where((l) => l.country == marketId).toList();
         final now = DateTime.now();
         final monthStart = DateTime(now.year, now.month, 1);
         final leadsThisMonth = leads.where((l) => !l.createdAt.isBefore(monthStart)).length;
@@ -499,7 +503,9 @@ class _LeadSourceBreakdown extends StatelessWidget {
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
       valueListenable: LeadService.instance.leads,
-      builder: (context, List<LeadModel> leads, _) {
+      builder: (context, List<LeadModel> allLeads, _) {
+        final marketId = context.watch<AppState>().selectedMarketId;
+        final leads = allLeads.where((l) => l.country == marketId).toList();
         final cs = Theme.of(context).colorScheme;
         final isDark = Theme.of(context).brightness == Brightness.dark;
         if (leads.isEmpty) {
@@ -586,7 +592,9 @@ class _ConversionFunnel extends StatelessWidget {
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
       valueListenable: LeadService.instance.leads,
-      builder: (context, List<LeadModel> leads, _) {
+      builder: (context, List<LeadModel> allLeads, _) {
+        final marketId = context.watch<AppState>().selectedMarketId;
+        final leads = allLeads.where((l) => l.country == marketId).toList();
         final cs = Theme.of(context).colorScheme;
         if (leads.isEmpty) {
           return Card(

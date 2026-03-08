@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:anis_crm/theme.dart';
 import 'package:anis_crm/models/lead.dart';
 import 'package:anis_crm/models/task_model.dart';
 import 'package:anis_crm/services/lead_service.dart';
 import 'package:anis_crm/services/task_service.dart';
+import 'package:anis_crm/state/app_state.dart';
 
 /// Calendar page — connected to real leads (follow-ups) and tasks (due dates).
 class CalendarPage extends StatefulWidget {
@@ -32,10 +34,11 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   /// Build unified calendar entries from leads + tasks
-  List<_CalEntry> _buildEntries() {
+  List<_CalEntry> _buildEntries(String marketId) {
     final entries = <_CalEntry>[];
-    // Leads with nextFollowupAt
+    // Leads with nextFollowupAt (filtered by market)
     for (final l in LeadService.instance.leads.value) {
+      if (l.country != marketId) continue;
       if (l.nextFollowupAt != null) {
         entries.add(_CalEntry(
           id: l.id,
@@ -98,7 +101,8 @@ class _CalendarPageState extends State<CalendarPage> {
                   return ValueListenableBuilder<List<TaskModel>>(
                     valueListenable: TaskService.instance.tasks,
                     builder: (_, __, ___) {
-                      final entries = _buildEntries();
+                      final marketId = context.watch<AppState>().selectedMarketId;
+                      final entries = _buildEntries(marketId);
                       return Column(children: [
                         // Top bar
                         _buildTopBar(cs, tt, wide, entries),

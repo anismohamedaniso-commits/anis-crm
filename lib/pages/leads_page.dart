@@ -8,6 +8,8 @@ import 'package:anis_crm/services/lead_service.dart';
 import 'package:anis_crm/services/activity_service.dart';
 import 'package:anis_crm/services/social_launcher.dart';
 import 'package:anis_crm/services/auth_service.dart';
+import 'package:anis_crm/state/app_state.dart';
+import 'package:provider/provider.dart';
 
 import 'dart:convert';
 import 'package:csv/csv.dart';
@@ -106,8 +108,7 @@ Color _avatarColor(String name) {
 // =============================================================================
 
 class LeadsPage extends StatefulWidget {
-  const LeadsPage({super.key, this.countryFilter = 'egypt'});
-  final String countryFilter;
+  const LeadsPage({super.key});
   @override
   State<LeadsPage> createState() => _LeadsPageState();
 }
@@ -134,10 +135,10 @@ class _LeadsPageState extends State<LeadsPage> {
     super.dispose();
   }
 
-  List<LeadModel> _applyFilters(List<LeadModel> leads) {
+  List<LeadModel> _applyFilters(List<LeadModel> leads, String marketId) {
     return leads.where((l) {
-      // Country filter
-      final countryOk = l.country == widget.countryFilter;
+      // Country filter — driven by global market selector
+      final countryOk = l.country == marketId;
       // Status filter
       final statusOk = _selectedStatus == null || l.status == _selectedStatus;
       // Search filter
@@ -171,17 +172,20 @@ class _LeadsPageState extends State<LeadsPage> {
       backgroundColor: cs.surface,
       body: Column(children: [
         // ── Top bar ──
-        _TopBar(
-          title: widget.countryFilter == 'saudi_arabia' ? 'Saudi Arabia Leads' : 'Egypt Leads',
+        Builder(builder: (context) {
+          final market = context.watch<AppState>().selectedMarket;
+          return _TopBar(
+          title: '${market.flag} ${market.label} Leads',
           onExport: () => _exportExcel(context),
           onDeleteAll: () => _deleteAllLeads(context),
           onCalendar: () => context.go('/app/calendar'),
           onMenu: () => _showSortMenu(context),
-          leadCount: _applyFilters(LeadService.instance.leads.value).length,
+          leadCount: _applyFilters(LeadService.instance.leads.value, market.id).length,
           sortBy: _sortBy,
           bulkMode: _bulkMode,
           onToggleBulk: () => setState(() { _bulkMode = !_bulkMode; _selectedIds.clear(); }),
-        ),
+        );
+        }),
         // ── Search bar ──
         Padding(
           padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width < 500 ? 12 : 20, vertical: 8),
@@ -233,7 +237,8 @@ class _LeadsPageState extends State<LeadsPage> {
           child: ValueListenableBuilder(
             valueListenable: LeadService.instance.leads,
             builder: (context, List<LeadModel> leads, _) {
-              final filtered = _applyFilters(leads);
+              final marketId = context.read<AppState>().selectedMarketId;
+              final filtered = _applyFilters(leads, marketId);
               if (filtered.isEmpty) {
                 return _EmptyState(hasFilters: _searchQuery.isNotEmpty || _selectedStatus != null);
               }
@@ -284,7 +289,7 @@ class _LeadsPageState extends State<LeadsPage> {
         children: [
           FloatingActionButton.small(
             heroTag: 'import',
-            onPressed: () => showDialog(context: context, builder: (_) => _ImportLeadsDialog(country: widget.countryFilter)),
+            onPressed: () => showDialog(context: context, builder: (_) => const _ImportLeadsDialog()),
             backgroundColor: cs.surfaceContainerHighest,
             foregroundColor: cs.onSurface,
             elevation: 2,
@@ -295,7 +300,7 @@ class _LeadsPageState extends State<LeadsPage> {
           FloatingActionButton.extended(
             heroTag: 'newLead',
             onPressed: () async {
-              final created = await showDialog<LeadModel>(context: context, builder: (_) => _LeadEditorDialog(country: widget.countryFilter));
+              final created = await showDialog<LeadModel>(context: context, builder: (_) => const _LeadEditorDialog());
               if (created != null && mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                   behavior: SnackBarBehavior.floating,
@@ -348,7 +353,7 @@ class _LeadsPageState extends State<LeadsPage> {
 
   // ── Export Excel ──
   Future<void> _exportExcel(BuildContext context) async {
-    final leads = _applyFilters(LeadService.instance.leads.value);
+    final leads = _applyFilters(LeadService.instance.leads.value, context.read<AppState>().selectedMarketId);
     if (leads.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No leads to export')));
       return;
@@ -1359,8 +1364,7 @@ class _EmptyState extends StatelessWidget {
 // =============================================================================
 
 class _LeadEditorDialog extends StatefulWidget {
-  const _LeadEditorDialog({this.country = 'egypt'});
-  final String country;
+  const _LeadEditorDialog();
   @override
   State<_LeadEditorDialog> createState() => _LeadEditorDialogState();
 }
@@ -1399,8 +1403,8 @@ class _LeadEditorDialogState extends State<_LeadEditorDialog> {
           TextField(
             controller: _dealValue,
             decoration: InputDecoration(
-              labelText: widget.country == 'saudi_arabia' ? 'Deal Value (SAR)' : 'Deal Value (EGP)',
-              prefixText: widget.country == 'saudi_arabia' ? 'SAR ' : 'EGP ',
+              labelText: 'Deal Value (${context.read<AppState>().selectedMarket.currency})',
+              prefixText: '${context.read<AppState>().selectedMarket.currencySymbol} ',
             ),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
           ),
@@ -1472,7 +1476,7 @@ class _LeadEditorDialogState extends State<_LeadEditorDialog> {
         source: _source,
         status: _status,
         dealValue: double.tryParse(_dealValue.text.trim()),
-        country: widget.country,
+        country: context.read<AppState>().selectedMarketId,
       );
       if (context.mounted) Navigator.of(context).pop(created);
     } catch (e) {
@@ -1488,8 +1492,7 @@ class _LeadEditorDialogState extends State<_LeadEditorDialog> {
 // =============================================================================
 
 class _ImportLeadsDialog extends StatefulWidget {
-  const _ImportLeadsDialog({this.country = 'egypt'});
-  final String country;
+  const _ImportLeadsDialog();
   @override
   State<_ImportLeadsDialog> createState() => _ImportLeadsDialogState();
 }
@@ -1725,7 +1728,7 @@ class _ImportLeadsDialogState extends State<_ImportLeadsDialog> {
             email: email?.isEmpty == true ? null : email,
             source: source,
             createdAt: createdAt,
-            country: widget.country,
+            country: context.read<AppState>().selectedMarketId,
           );
           ok++;
         }

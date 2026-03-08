@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:anis_crm/theme.dart';
 import 'package:anis_crm/engine/lead_score_engine.dart';
 import 'package:anis_crm/models/lead.dart';
 import 'package:anis_crm/services/lead_service.dart';
+import 'package:anis_crm/state/app_state.dart';
 
 class PipelinePage extends StatelessWidget {
   const PipelinePage({super.key});
@@ -18,7 +20,9 @@ class PipelinePage extends StatelessWidget {
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: ValueListenableBuilder(
           valueListenable: LeadService.instance.leads,
-          builder: (context, List<LeadModel> leads, _) {
+          builder: (context, List<LeadModel> allLeads, _) {
+            final marketId = context.watch<AppState>().selectedMarketId;
+            final leads = allLeads.where((l) => l.country == marketId).toList();
             final grouped = <LeadStatus, List<LeadModel>>{for (final s in LeadStatus.values) s: <LeadModel>[]};
             for (final l in leads) grouped[l.status]!.add(l);
             return isWide ? _DesktopKanban(columns: columns, data: grouped) : _MobileKanban(columns: columns, data: grouped);

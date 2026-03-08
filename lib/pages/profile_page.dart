@@ -92,7 +92,8 @@ class _ProfilePageState extends State<ProfilePage>
 
   Future<void> _loadStats() async {
     await LeadService.instance.load();
-    final leads = LeadService.instance.leads.value;
+    final leads = LeadService.instance.leads.value
+        .where((l) => l.country == context.read<AppState>().selectedMarketId).toList();
     if (mounted) {
       setState(() {
         _totalLeads = leads.length;

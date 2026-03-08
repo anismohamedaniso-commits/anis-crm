@@ -759,7 +759,9 @@ class _CampaignDetailDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final leads = LeadService.instance.leads.value;
+    final allLeadsUnfiltered = LeadService.instance.leads.value;
+    final marketId = context.read<AppState>().selectedMarketId;
+    final leads = allLeadsUnfiltered.where((l) => l.country == marketId).toList();
     final recipients = leads.where((l) => campaign.recipientLeadIds.contains(l.id)).toList();
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
@@ -1260,7 +1262,9 @@ class _RecipientSelector extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return ValueListenableBuilder<List<LeadModel>>(
       valueListenable: LeadService.instance.leads,
-      builder: (context, allLeads, _) {
+      builder: (context, allLeadsRaw, _) {
+        final marketId = context.watch<AppState>().selectedMarketId;
+        final allLeads = allLeadsRaw.where((l) => l.country == marketId).toList();
         // Apply status filter first (empty = all statuses)
         final statusFiltered = statusFilter.isEmpty
             ? allLeads

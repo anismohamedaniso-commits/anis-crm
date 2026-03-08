@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:anis_crm/theme.dart';
 import 'package:anis_crm/models/lead.dart';
 import 'package:anis_crm/models/task_model.dart';
 import 'package:anis_crm/services/lead_service.dart';
 import 'package:anis_crm/services/task_service.dart';
+import 'package:anis_crm/state/app_state.dart';
 import 'package:anis_crm/utils/excel_builder.dart';
 import 'package:anis_crm/utils/excel_download_stub.dart'
     if (dart.library.html) 'package:anis_crm/utils/excel_download_web.dart';
@@ -91,6 +93,9 @@ class _ReportsPageState extends State<ReportsPage>
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    // React to market changes
+    final market = context.watch<AppState>().selectedMarket;
+    final filteredLeads = _leads.where((l) => l.country == market.id).toList();
     return Scaffold(
       appBar: AppBar(
         title: Text('Reports & Analytics',
@@ -135,10 +140,10 @@ class _ReportsPageState extends State<ReportsPage>
           : TabBarView(
               controller: _tabCtrl,
               children: [
-                _OverviewTab(leads: _leads, tasks: _tasks),
-                _PipelineTab(leads: _leads),
-                _BreakdownTab(leads: _leads),
-                _ActivityTab(leads: _leads, tasks: _tasks),
+                _OverviewTab(leads: filteredLeads, tasks: _tasks),
+                _PipelineTab(leads: filteredLeads),
+                _BreakdownTab(leads: filteredLeads),
+                _ActivityTab(leads: filteredLeads, tasks: _tasks),
               ],
             ),
     );
@@ -202,9 +207,7 @@ class _OverviewTab extends StatelessWidget {
         .length;
 
     String fmtRevenue(double v) {
-      if (v >= 1000000) return '${(v / 1000000).toStringAsFixed(1)}M EGP';
-      if (v >= 1000) return '${(v / 1000).toStringAsFixed(1)}K EGP';
-      return '${v.toStringAsFixed(0)} EGP';
+      return context.read<AppState>().selectedMarket.fmtRevenue(v);
     }
 
     return SingleChildScrollView(
@@ -517,11 +520,7 @@ class _PipelineTab extends StatelessWidget {
                   Text('Total Revenue from Conversions',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
                   Text(
-                      revenue >= 1000000
-                          ? '${(revenue / 1000000).toStringAsFixed(2)}M EGP'
-                          : revenue >= 1000
-                              ? '${(revenue / 1000).toStringAsFixed(1)}K EGP'
-                              : '${revenue.toStringAsFixed(0)} EGP',
+                      context.read<AppState>().selectedMarket.fmtRevenue(revenue),
                       style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w800, color: const Color(0xFF9C27B0))),
                 ]),
@@ -756,9 +755,7 @@ class _BreakdownTabState extends State<_BreakdownTab> {
                   final sorted = bySourceRevenue.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
                   return sorted.map((e) {
                     final pct = maxRev > 0 ? e.value / maxRev : 0.0;
-                    final fmtRev = e.value >= 1000
-                        ? '${(e.value / 1000).toStringAsFixed(1)}K EGP'
-                        : '${e.value.toStringAsFixed(0)} EGP';
+                    final fmtRev = context.read<AppState>().selectedMarket.fmtRevenue(e.value);
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: Row(children: [

@@ -1,5 +1,6 @@
 import 'package:anis_crm/theme.dart';
 import 'package:anis_crm/components/notification_bell.dart';
+import 'package:anis_crm/components/market_selector.dart';
 import 'package:anis_crm/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -22,8 +23,7 @@ class _AppShellState extends State<AppShell> {
   // ── Destination groups ────────────────────────────────────────────────────
   static final _coreSection = <_NavDestination>[
     _NavDestination('Dashboard', Icons.space_dashboard_outlined, Icons.space_dashboard_rounded, '/app/dashboard'),
-    _NavDestination('Egypt Leads', Icons.people_outline, Icons.people_rounded, '/app/leads'),
-    _NavDestination('Saudi Leads', Icons.people_outline, Icons.people_rounded, '/app/leads-sa'),
+    _NavDestination('Leads', Icons.people_outline, Icons.people_rounded, '/app/leads'),
     _NavDestination('Pipeline', Icons.view_kanban_outlined, Icons.view_kanban_rounded, '/app/pipeline'),
     _NavDestination('Calendar', Icons.calendar_today_outlined, Icons.calendar_today_rounded, '/app/calendar'),
     _NavDestination('KPIs', Icons.track_changes_outlined, Icons.track_changes_rounded, '/app/kpis'),
@@ -111,6 +111,13 @@ class _AppShellState extends State<AppShell> {
                     ),
                   ]),
                 ),
+
+                // ── Market selector ──
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: _collapsed ? 8 : 14, vertical: 4),
+                  child: MarketSelector(collapsed: _collapsed),
+                ),
+                const SizedBox(height: 4),
 
                 // ── Nav sections ──
                 Expanded(
@@ -613,6 +620,12 @@ class _MobileDrawer extends StatelessWidget {
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ]),
+          ),
+
+          // ── Market selector ──
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            child: MarketSelector(),
           ),
 
           // ── Nav sections ──

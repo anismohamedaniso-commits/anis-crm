@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:anis_crm/models/lead.dart';
+import 'package:anis_crm/models/market.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Global app state for lightweight flags shared across the app.
@@ -7,6 +8,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AppState extends ChangeNotifier {
   // Connectivity to local AI provider
   bool _aiConnected = false;
+
+  // ── Global market / country selector ──────────────────────────────────
+  String _selectedMarketId = 'egypt';
+
+  /// Currently selected market (persisted across sessions).
+  Market get selectedMarket => Market.byId(_selectedMarketId);
+  String get selectedMarketId => _selectedMarketId;
+
+  void setSelectedMarket(String marketId) {
+    if (_selectedMarketId == marketId) return;
+    _selectedMarketId = marketId;
+    _persistString('selected_market', marketId);
+    notifyListeners();
+  }
 
   // Centralized AI feature toggles (all OFF by default)
   bool _aiPrioritiesEnabled = false;
@@ -137,6 +152,7 @@ class AppState extends ChangeNotifier {
   Future<void> init() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      _selectedMarketId = prefs.getString('selected_market') ?? 'egypt';
       _aiConnected = prefs.getBool('ai_connected') ?? false;
       _aiPrioritiesEnabled = prefs.getBool('ai_priorities_enabled') ?? false;
       _aiScoringEnabled = prefs.getBool('ai_scoring_enabled') ?? false;
@@ -428,6 +444,15 @@ class AppState extends ChangeNotifier {
       await prefs.setBool(key, value);
     } catch (e) {
       debugPrint('AppState._persist($key) error: $e');
+    }
+  }
+
+  Future<void> _persistString(String key, String value) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(key, value);
+    } catch (e) {
+      debugPrint('AppState._persistString($key) error: $e');
     }
   }
 }

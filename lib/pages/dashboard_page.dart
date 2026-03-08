@@ -7,6 +7,7 @@ import 'package:anis_crm/services/activity_service.dart';
 import 'package:anis_crm/services/task_service.dart';
 import 'package:anis_crm/state/app_state.dart';
 import 'package:anis_crm/models/lead.dart';
+import 'package:anis_crm/models/market.dart';
 import 'package:anis_crm/models/activity.dart';
 import 'package:anis_crm/models/task_model.dart';
 import 'package:anis_crm/theme.dart';
@@ -35,11 +36,14 @@ class DashboardPage extends StatelessWidget {
         // ── KPI + Tasks driven by live data ──
         ValueListenableBuilder(
           valueListenable: LeadService.instance.leads,
-          builder: (context, List<LeadModel> leads, _) {
+          builder: (context, List<LeadModel> allLeads, _) {
+            // Filter by selected market
+            final market = context.watch<AppState>().selectedMarket;
+            final leads = allLeads.where((l) => l.country == market.id).toList();
             return ValueListenableBuilder(
               valueListenable: TaskService.instance.tasks,
               builder: (context, List<TaskModel> tasks, _) {
-                return _DashboardBody(leads: leads, tasks: tasks);
+                return _DashboardBody(leads: leads, tasks: tasks, market: market);
               },
             );
           },
@@ -83,9 +87,10 @@ class _DashboardHeader extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _DashboardBody extends StatelessWidget {
-  const _DashboardBody({required this.leads, required this.tasks});
+  const _DashboardBody({required this.leads, required this.tasks, required this.market});
   final List<LeadModel> leads;
   final List<TaskModel> tasks;
+  final Market market;
 
   @override
   Widget build(BuildContext context) {
@@ -124,9 +129,7 @@ class _DashboardBody extends StatelessWidget {
     final dk = Theme.of(context).brightness == Brightness.dark;
 
     String fmtRev(double v) {
-      if (v >= 1000000) return '${(v / 1000000).toStringAsFixed(1)}M EGP';
-      if (v >= 1000) return '${(v / 1000).toStringAsFixed(1)}K EGP';
-      return '${v.toStringAsFixed(0)} EGP';
+      return market.fmtRevenue(v);
     }
 
     // Empty state
@@ -136,7 +139,7 @@ class _DashboardBody extends StatelessWidget {
           _KpiData('Total Leads', '0', Icons.people_outline_rounded, AppColors.info, dk),
           _KpiData('Active Pipeline', '0', Icons.moving_rounded, const Color(0xFF2196F3), dk),
           _KpiData('Converted', '0', Icons.check_circle_outline_rounded, AppColors.success, dk),
-          _KpiData('Revenue', '0 EGP', Icons.monetization_on_outlined, const Color(0xFF9C27B0), dk),
+          _KpiData('Revenue', '0 ${market.currency}', Icons.monetization_on_outlined, const Color(0xFF9C27B0), dk),
         ]),
         const SizedBox(height: AppSpacing.lg),
         Card(
