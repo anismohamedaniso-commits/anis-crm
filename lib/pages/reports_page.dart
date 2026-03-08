@@ -9,6 +9,8 @@ import 'package:anis_crm/state/app_state.dart';
 import 'package:anis_crm/utils/excel_builder.dart';
 import 'package:anis_crm/utils/excel_download_stub.dart'
     if (dart.library.html) 'package:anis_crm/utils/excel_download_web.dart';
+import 'package:anis_crm/services/campaign_service.dart';
+import 'package:anis_crm/models/campaign.dart';
 
 // ══════════════════════════════════════════════════════════════════════════════
 // REPORTS & ANALYTICS PAGE — Enhanced
@@ -32,7 +34,7 @@ class _ReportsPageState extends State<ReportsPage>
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 4, vsync: this);
+    _tabCtrl = TabController(length: 5, vsync: this);
     _loadData();
   }
 
@@ -61,15 +63,18 @@ class _ReportsPageState extends State<ReportsPage>
     if (_exporting) return;
     setState(() => _exporting = true);
     try {
-      final bytes = buildLeadsExcel(_leads);
+      // Use market-filtered leads, not the full list
+      final market = context.read<AppState>().selectedMarket;
+      final exportLeads = _leads.where((l) => l.country == market.id).toList();
+      final bytes = buildLeadsExcel(exportLeads);
       final now = DateTime.now();
       final fname =
-          'tick_talk_leads_${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}.xlsx';
+          'tick_talk_${market.id}_leads_${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}.xlsx';
       final ok = await downloadExcelFile(bytes, fname);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(ok
-              ? '\u2713 Excel exported \u2014 ${_leads.length} leads, 4 sheets'
+              ? '\u2713 Excel exported \u2014 ${exportLeads.length} ${market.label} leads, 4 sheets'
               : 'Export not supported on this platform'),
           behavior: SnackBarBehavior.floating,
           backgroundColor: ok
@@ -132,6 +137,7 @@ class _ReportsPageState extends State<ReportsPage>
             Tab(icon: Icon(Icons.filter_alt_outlined, size: 18), text: 'Pipeline'),
             Tab(icon: Icon(Icons.bar_chart_rounded, size: 18), text: 'Breakdown'),
             Tab(icon: Icon(Icons.task_alt_outlined, size: 18), text: 'Activity'),
+            Tab(icon: Icon(Icons.campaign_outlined, size: 18), text: 'Campaigns'),
           ],
         ),
       ),
@@ -144,6 +150,7 @@ class _ReportsPageState extends State<ReportsPage>
                 _PipelineTab(leads: filteredLeads),
                 _BreakdownTab(leads: filteredLeads),
                 _ActivityTab(leads: filteredLeads, tasks: _tasks),
+                _CampaignsTab(leads: filteredLeads, marketId: market.id),
               ],
             ),
     );
@@ -997,6 +1004,189 @@ class _FollowupTile extends StatelessWidget {
         Divider(height: 1, indent: 56, color: cs.outlineVariant.withValues(alpha: 0.4)),
     ]);
   }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CAMPAIGNS TAB
+// ══════════════════════════════════════════════════════════════════════════════
+
+class _CampaignsTab extends StatelessWidget {
+  const _CampaignsTab({required this.leads, required this.marketId});
+  final List<LeadModel> leads;
+  final String marketId;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final dk = Theme.of(context).brightness == Brightness.dark;
+
+    return ValueListenableBuilder(
+      valueListenable: CampaignService.instance.campaigns,
+      builder: (context, List<CampaignModel> allCampaigns, _) {
+        final campaigns = CampaignService.instance.forMarket(marketId);
+        final totalBudget = campaigns.fold(0.0, (s, c) => s + c.budget);
+
+        // Count leads per campaign
+        final leadsByCampaign = <String, int>{};
+        for (final l in leads) {
+          if (l.campaign != null && l.campaign!.isNotEmpty) {
+            leadsByCampaign[l.campaign!] = (leadsByCampaign[l.campaign!] ?? 0) + 1;
+          }
+        }
+        final assignedLeads = leadsByCampaign.values.fold(0, (s, v) => s + v);
+        final unassigned = leads.length - assignedLeads;
+
+        String fmtBudget(double v) {
+          return context.read<AppState>().selectedMarket.fmtRevenue(v);
+        }
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Campaign Analytics',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+              const SizedBox(height: AppSpacing.md),
+
+              // KPI strip
+              Wrap(spacing: AppSpacing.md, runSpacing: AppSpacing.md, children: [
+                _KpiCard(label: 'Active Campaigns', value: '${campaigns.length}', icon: Icons.campaign_outlined, color: const Color(0xFF2196F3), dk: dk),
+                _KpiCard(label: 'Total Budget', value: fmtBudget(totalBudget), icon: Icons.account_balance_wallet_outlined, color: const Color(0xFF9C27B0), dk: dk),
+                _KpiCard(
+                  label: 'Avg CPL',
+                  value: assignedLeads > 0 ? fmtBudget(totalBudget / assignedLeads) : '-',
+                  icon: Icons.price_check_rounded,
+                  color: AppColors.success,
+                  dk: dk,
+                  subtitle: assignedLeads > 0 ? '$assignedLeads leads assigned' : 'No leads assigned yet',
+                ),
+                _KpiCard(label: 'Unassigned Leads', value: '$unassigned', icon: Icons.person_off_outlined, color: AppColors.warning, dk: dk, subtitle: 'not linked to any campaign'),
+              ]),
+              const SizedBox(height: AppSpacing.xl),
+
+              if (campaigns.isEmpty)
+                Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(children: [
+                      Icon(Icons.campaign_outlined, size: 48, color: cs.onSurfaceVariant.withValues(alpha: 0.4)),
+                      const SizedBox(height: 12),
+                      Text('No campaigns yet', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 4),
+                      Text('Create campaigns from the Campaigns page to see analytics here.',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                          textAlign: TextAlign.center),
+                    ]),
+                  ),
+                )
+              else ...[
+                // Campaign comparison table
+                Text('Campaign Comparison',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(height: AppSpacing.sm),
+                Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        // Header
+                        Row(children: [
+                          Expanded(flex: 3, child: Text('Campaign', style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700, color: cs.onSurfaceVariant))),
+                          Expanded(flex: 2, child: Text('Budget', style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700, color: cs.onSurfaceVariant), textAlign: TextAlign.right)),
+                          Expanded(flex: 1, child: Text('Leads', style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700, color: cs.onSurfaceVariant), textAlign: TextAlign.right)),
+                          Expanded(flex: 2, child: Text('CPL', style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700, color: cs.onSurfaceVariant), textAlign: TextAlign.right)),
+                        ]),
+                        const Divider(height: 16),
+                        ...campaigns.map((c) {
+                          final count = leadsByCampaign[c.id] ?? 0;
+                          final cpl = count > 0 ? c.budget / count : 0.0;
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            child: Row(children: [
+                              Expanded(flex: 3, child: Text(c.name, style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
+                              Expanded(flex: 2, child: Text(fmtBudget(c.budget), style: Theme.of(context).textTheme.bodySmall, textAlign: TextAlign.right)),
+                              Expanded(flex: 1, child: Text('$count', style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700), textAlign: TextAlign.right)),
+                              Expanded(flex: 2, child: Text(count > 0 ? fmtBudget(cpl) : '-', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: count > 0 ? AppColors.success : cs.onSurfaceVariant), textAlign: TextAlign.right)),
+                            ]),
+                          );
+                        }),
+                        const Divider(height: 16),
+                        // Total row
+                        Row(children: [
+                          Expanded(flex: 3, child: Text('Total', style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w800))),
+                          Expanded(flex: 2, child: Text(fmtBudget(totalBudget), style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700), textAlign: TextAlign.right)),
+                          Expanded(flex: 1, child: Text('$assignedLeads', style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w800), textAlign: TextAlign.right)),
+                          Expanded(flex: 2, child: Text(assignedLeads > 0 ? fmtBudget(totalBudget / assignedLeads) : '-', style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700, color: AppColors.success), textAlign: TextAlign.right)),
+                        ]),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+
+                // Budget distribution bar
+                Text('Budget Distribution',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(height: AppSpacing.sm),
+                if (totalBudget > 0)
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: SizedBox(
+                              height: 14,
+                              child: Row(
+                                children: campaigns.map((c) {
+                                  if (c.budget <= 0) return const SizedBox.shrink();
+                                  return Expanded(
+                                    flex: (c.budget * 100 / totalBudget).round().clamp(1, 100),
+                                    child: Container(color: _campaignColor(campaigns.indexOf(c))),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Wrap(spacing: 14, runSpacing: 6, children: campaigns.map((c) {
+                            final pct = totalBudget > 0 ? (c.budget / totalBudget * 100).toStringAsFixed(0) : '0';
+                            final idx = campaigns.indexOf(c);
+                            return Row(mainAxisSize: MainAxisSize.min, children: [
+                              Container(width: 9, height: 9, decoration: BoxDecoration(color: _campaignColor(idx), borderRadius: BorderRadius.circular(3))),
+                              const SizedBox(width: 5),
+                              Text('${c.name} ($pct%)', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant)),
+                            ]);
+                          }).toList()),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+Color _campaignColor(int index) {
+  const colors = [
+    Color(0xFF2196F3), Color(0xFF9C27B0), Color(0xFF4CAF50),
+    Color(0xFFFF9800), Color(0xFFE91E63), Color(0xFF00BCD4),
+    Color(0xFF795548), Color(0xFF607D8B),
+  ];
+  return colors[index % colors.length];
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

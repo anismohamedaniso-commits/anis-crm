@@ -5,6 +5,8 @@ import 'package:anis_crm/services/ai_executor.dart';
 import 'package:anis_crm/services/lead_service.dart';
 import 'package:anis_crm/services/activity_service.dart';
 import 'package:anis_crm/services/task_service.dart';
+import 'package:anis_crm/services/campaign_service.dart';
+import 'package:anis_crm/models/campaign.dart';
 import 'package:anis_crm/state/app_state.dart';
 import 'package:anis_crm/models/lead.dart';
 import 'package:anis_crm/models/market.dart';
@@ -174,6 +176,11 @@ class _DashboardBody extends StatelessWidget {
             subtitle: overdueTasks > 0 ? '$overdueTasks overdue • $doneTasks done' : '$doneTasks done',
             urgent: overdueTasks > 0),
       ]),
+
+      const SizedBox(height: AppSpacing.lg),
+
+      // ── Campaign KPIs ──
+      _CampaignKpiStrip(leads: leads, market: market, dk: dk),
 
       const SizedBox(height: AppSpacing.lg),
 
@@ -814,6 +821,64 @@ class _AiInsightsSection extends StatelessWidget {
           ],
         ]),
       ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CAMPAIGN KPI STRIP
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CampaignKpiStrip extends StatelessWidget {
+  const _CampaignKpiStrip({required this.leads, required this.market, required this.dk});
+  final List<LeadModel> leads;
+  final Market market;
+  final bool dk;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder(
+      valueListenable: CampaignService.instance.campaigns,
+      builder: (context, List<CampaignModel> allCampaigns, _) {
+        final campaigns = CampaignService.instance.forMarket(market.id);
+        if (campaigns.isEmpty) return const SizedBox.shrink();
+
+        final totalBudget = campaigns.fold(0.0, (s, c) => s + c.budget);
+        final assignedLeads = leads.where((l) => l.campaign != null && l.campaign!.isNotEmpty).length;
+        final avgCpl = assignedLeads > 0 ? totalBudget / assignedLeads : 0.0;
+        final fmtBudget = market.fmtRevenue(totalBudget);
+        final fmtCpl = assignedLeads > 0 ? market.fmtRevenue(avgCpl) : '-';
+
+        return Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            side: BorderSide(color: const Color(0xFF2196F3).withValues(alpha: 0.2)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Icon(Icons.campaign_outlined, size: 18, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 8),
+                Text('Campaigns', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                const Spacer(),
+                TextButton(
+                  onPressed: () => GoRouter.of(context).go('/app/campaigns'),
+                  style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), minimumSize: Size.zero),
+                  child: const Text('View all'),
+                ),
+              ]),
+              const SizedBox(height: 12),
+              _KpiGrid(metrics: [
+                _KpiData('Active', '${campaigns.length}', Icons.campaign_outlined, const Color(0xFF2196F3), dk),
+                _KpiData('Total Spend', fmtBudget, Icons.account_balance_wallet_outlined, const Color(0xFF9C27B0), dk),
+                _KpiData('Avg CPL', fmtCpl, Icons.price_check_rounded, AppColors.success, dk, subtitle: '$assignedLeads leads assigned'),
+              ]),
+            ]),
+          ),
+        );
+      },
     );
   }
 }

@@ -151,8 +151,6 @@ class EmailCampaignService {
             .cast<Map<String, dynamic>>()
             .map(EmailCampaign.fromJson)
             .toList();
-      } else {
-        campaigns.value = _sampleCampaigns();
       }
       // templates
       final rawT = prefs.getString(_templatesKey);
@@ -161,13 +159,9 @@ class EmailCampaignService {
             .cast<Map<String, dynamic>>()
             .map(EmailTemplate.fromJson)
             .toList();
-      } else {
-        templates.value = _sampleTemplates();
       }
     } catch (e) {
       debugPrint('EmailCampaignService.load failed: $e');
-      campaigns.value = _sampleCampaigns();
-      templates.value = _sampleTemplates();
     } finally {
       _loaded = true;
     }
@@ -349,48 +343,4 @@ class EmailCampaignService {
     await _save();
   }
 
-  // ── Sample data ──────────────────────────────────────────────────────
-  List<EmailCampaign> _sampleCampaigns() {
-    final now = DateTime.now();
-    return [
-      EmailCampaign(
-        id: const Uuid().v4(),
-        name: 'Spring Promo Blast',
-        subject: 'Exclusive Spring Deals Just For You!',
-        body: 'Hi there! Check out our amazing spring collection...',
-        status: CampaignStatus.sent,
-        recipientCount: 120,
-        recipientLeadIds: [],
-        channel: 'email',
-        createdAt: now.subtract(const Duration(days: 5)),
-        sentAt: now.subtract(const Duration(days: 4)),
-      ),
-      EmailCampaign(
-        id: const Uuid().v4(),
-        name: 'Welcome Series',
-        subject: 'Welcome to Our Community!',
-        body: 'Welcome aboard! Here is what you can expect...',
-        status: CampaignStatus.draft,
-        recipientCount: 0,
-        recipientLeadIds: [],
-        channel: 'email',
-        createdAt: now.subtract(const Duration(days: 1)),
-      ),
-    ];
-  }
-
-  List<EmailTemplate> _sampleTemplates() => [
-        EmailTemplate(
-          id: const Uuid().v4(),
-          name: 'Welcome Email',
-          subject: 'Welcome to {{company}}!',
-          body: 'Hi {{name}},\n\nThank you for joining us...',
-        ),
-        EmailTemplate(
-          id: const Uuid().v4(),
-          name: 'Follow-Up',
-          subject: 'Just Checking In',
-          body: 'Hi {{name}},\n\nWe wanted to follow up on...',
-        ),
-      ];
 }
