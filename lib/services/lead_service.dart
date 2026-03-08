@@ -299,6 +299,22 @@ class LeadService {
     }
   }
 
+  /// Bulk assign leads to a campaign.
+  Future<int> bulkSetCampaign(List<String> ids, String? campaignId) async {
+    final updated = leads.value.map((l) {
+      if (ids.contains(l.id)) return l.copyWith(campaign: campaignId ?? '', updatedAt: DateTime.now());
+      return l;
+    }).toList();
+    leads.value = updated;
+    await _saveLocal();
+    try {
+      return await _api.bulkUpdateLeads(ids, {'campaign': campaignId ?? ''});
+    } catch (e) {
+      debugPrint('LeadService.bulkSetCampaign server error: $e');
+      return ids.length;
+    }
+  }
+
   /// Bulk assign leads to a team member.
   Future<int> bulkAssign(List<String> ids, String assignedToId, String assignedToName) async {
     final updated = leads.value.map((l) {

@@ -62,6 +62,7 @@ class _CampaignsPageState extends State<CampaignsPage> {
                       itemBuilder: (_, i) => _CampaignCard(
                         campaign: campaigns[i],
                         leads: marketLeads.where((l) => l.campaign == campaigns[i].id).toList(),
+                        allMarketLeads: marketLeads,
                         market: market,
                         onEdit: () => _showEditDialog(context, campaigns[i], market),
                         onDelete: () => _confirmDelete(context, campaigns[i]),
@@ -197,6 +198,7 @@ class _EmptyState extends StatelessWidget {
 class _CampaignCard extends StatefulWidget {
   final CampaignModel campaign;
   final List<LeadModel> leads;
+  final List<LeadModel> allMarketLeads;
   final Market market;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
@@ -204,6 +206,7 @@ class _CampaignCard extends StatefulWidget {
   const _CampaignCard({
     required this.campaign,
     required this.leads,
+    required this.allMarketLeads,
     required this.market,
     required this.onEdit,
     required this.onDelete,
@@ -390,6 +393,16 @@ class _CampaignCardState extends State<_CampaignCard> {
                       }),
                     ],
                   ],
+                  // ── Assign Leads button ──
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _showBulkAssign(context),
+                      icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
+                      label: const Text('Assign Leads'),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -397,6 +410,22 @@ class _CampaignCardState extends State<_CampaignCard> {
         ],
       ),
     );
+  }
+
+  Future<void> _showBulkAssign(BuildContext context) async {
+    final assigned = await showDialog<int>(
+      context: context,
+      builder: (_) => _BulkAssignDialog(
+        campaign: widget.campaign,
+        allMarketLeads: widget.allMarketLeads,
+        market: widget.market,
+      ),
+    );
+    if (assigned != null && assigned > 0 && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$assigned lead${assigned == 1 ? '' : 's'} assigned to "${widget.campaign.name}"')),
+      );
+    }
   }
 
   Widget _kpiTile(BuildContext context, _KpiItem k) {
@@ -463,6 +492,339 @@ class _KpiItem {
   final IconData icon;
   final Color color;
   const _KpiItem(this.label, this.value, this.icon, this.color);
+}
+
+// =============================================================================
+// BULK ASSIGN DIALOG
+// =============================================================================
+
+class _BulkAssignDialog extends StatefulWidget {
+  final CampaignModel campaign;
+  final List<LeadModel> allMarketLeads;
+  final Market market;
+  const _BulkAssignDialog({required this.campaign, required this.allMarketLeads, required this.market});
+  @override
+  State<_BulkAssignDialog> createState() => _BulkAssignDialogState();
+}
+
+class _BulkAssignDialogState extends State<_BulkAssignDialog> {
+  final _search = TextEditingController();
+  final _selected = <String>{};
+  String _filter = 'unassigned'; // 'unassigned' | 'all' | 'other'
+  bool _saving = false;
+
+  List<LeadModel> get _filteredLeads {
+    final q = _search.text.trim().toLowerCase();
+    var list = widget.allMarketLeads;
+
+    // Filter by assignment status
+    if (_filter == 'unassigned') {
+      list = list.where((l) => l.campaign == null || l.campaign!.isEmpty).toList();
+    } else if (_filter == 'other') {
+      // Leads assigned to OTHER campaigns (not this one)
+      list = list.where((l) =>
+          l.campaign != null && l.campaign!.isNotEmpty && l.campaign != widget.campaign.id).toList();
+    }
+    // 'all' shows everything not already in this campaign
+    list = list.where((l) => l.campaign != widget.campaign.id).toList();
+
+    // Search filter
+    if (q.isNotEmpty) {
+      list = list.where((l) {
+        final name = l.name.toLowerCase();
+        final phone = (l.phone ?? '').toLowerCase();
+        final email = (l.email ?? '').toLowerCase();
+        return name.contains(q) || phone.contains(q) || email.contains(q);
+      }).toList();
+    }
+    return list;
+  }
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final leads = _filteredLeads;
+    final allSelected = leads.isNotEmpty && leads.every((l) => _selected.contains(l.id));
+
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560, maxHeight: 620),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // ── Header ──
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 12, 0),
+              child: Row(
+                children: [
+                  Icon(Icons.person_add_alt_1_rounded, size: 20, color: cs.primary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text('Assign Leads to "${widget.campaign.name}"',
+                        style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                        overflow: TextOverflow.ellipsis),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+
+            // ── Search + filter ──
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: TextField(
+                controller: _search,
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  isDense: true,
+                  hintText: 'Search by name, phone, or email…',
+                  prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  _filterChip('Unassigned', 'unassigned', cs),
+                  const SizedBox(width: 6),
+                  _filterChip('Other Campaigns', 'other', cs),
+                  const SizedBox(width: 6),
+                  _filterChip('All', 'all', cs),
+                  const Spacer(),
+                  Text('${_selected.length} selected',
+                      style: tt.labelSmall?.copyWith(color: cs.primary, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 4),
+
+            // ── Select all ──
+            if (leads.isNotEmpty)
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    if (allSelected) {
+                      _selected.removeAll(leads.map((l) => l.id));
+                    } else {
+                      _selected.addAll(leads.map((l) => l.id));
+                    }
+                  });
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: Checkbox(
+                          value: allSelected,
+                          tristate: false,
+                          onChanged: (_) {
+                            setState(() {
+                              if (allSelected) {
+                                _selected.removeAll(leads.map((l) => l.id));
+                              } else {
+                                _selected.addAll(leads.map((l) => l.id));
+                              }
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text('Select all (${leads.length})',
+                          style: tt.labelMedium?.copyWith(fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+              ),
+
+            Divider(height: 1, color: cs.outline.withValues(alpha: 0.08)),
+
+            // ── Lead list ──
+            Expanded(
+              child: leads.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          _search.text.isNotEmpty
+                              ? 'No leads match your search'
+                              : 'No available leads to assign',
+                          style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: leads.length,
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      itemBuilder: (context, i) {
+                        final lead = leads[i];
+                        final checked = _selected.contains(lead.id);
+                        final otherCampaign = (lead.campaign != null && lead.campaign!.isNotEmpty)
+                            ? CampaignService.instance.byId(lead.campaign!)?.name
+                            : null;
+                        return InkWell(
+                          onTap: () {
+                            setState(() {
+                              if (checked) {
+                                _selected.remove(lead.id);
+                              } else {
+                                _selected.add(lead.id);
+                              }
+                            });
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: Checkbox(
+                                    value: checked,
+                                    onChanged: (v) {
+                                      setState(() {
+                                        if (v == true) {
+                                          _selected.add(lead.id);
+                                        } else {
+                                          _selected.remove(lead.id);
+                                        }
+                                      });
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(lead.name,
+                                          style: tt.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+                                          overflow: TextOverflow.ellipsis),
+                                      if (lead.phone != null && lead.phone!.isNotEmpty)
+                                        Text(lead.phone!,
+                                            style: tt.labelSmall?.copyWith(color: cs.onSurfaceVariant)),
+                                    ],
+                                  ),
+                                ),
+                                // Status pill
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: _statusColorForBulk(lead.status, cs).withValues(alpha: 0.10),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    lead.status.name,
+                                    style: tt.labelSmall?.copyWith(
+                                      color: _statusColorForBulk(lead.status, cs),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ),
+                                if (otherCampaign != null) ...[
+                                  const SizedBox(width: 6),
+                                  Tooltip(
+                                    message: 'Currently in: $otherCampaign',
+                                    child: Icon(Icons.swap_horiz_rounded, size: 16, color: Colors.orange.shade400),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+
+            // ── Actions ──
+            Divider(height: 1, color: cs.outline.withValues(alpha: 0.08)),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+              child: Row(
+                children: [
+                  if (_selected.isNotEmpty)
+                    TextButton(
+                      onPressed: () => setState(() => _selected.clear()),
+                      child: const Text('Clear Selection'),
+                    ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton.icon(
+                    onPressed: _selected.isEmpty || _saving ? null : _assign,
+                    icon: _saving
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.check_rounded, size: 18),
+                    label: Text('Assign ${_selected.length} Lead${_selected.length == 1 ? '' : 's'}'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _filterChip(String label, String value, ColorScheme cs) {
+    final active = _filter == value;
+    return FilterChip(
+      label: Text(label, style: TextStyle(fontSize: 11)),
+      selected: active,
+      onSelected: (_) => setState(() => _filter = value),
+      showCheckmark: false,
+      visualDensity: VisualDensity.compact,
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      labelPadding: const EdgeInsets.symmetric(horizontal: 2),
+    );
+  }
+
+  Color _statusColorForBulk(LeadStatus s, ColorScheme cs) => switch (s) {
+        LeadStatus.fresh => Colors.blue,
+        LeadStatus.interested => Colors.green,
+        LeadStatus.noAnswer => Colors.orange,
+        LeadStatus.followUp => Colors.purple,
+        LeadStatus.notInterested => Colors.red,
+        LeadStatus.converted => Colors.teal,
+        LeadStatus.closed => Colors.grey,
+      };
+
+  Future<void> _assign() async {
+    if (_selected.isEmpty) return;
+    setState(() => _saving = true);
+    try {
+      final count = await LeadService.instance.bulkSetCampaign(
+        _selected.toList(),
+        widget.campaign.id,
+      );
+      if (mounted) Navigator.pop(context, count);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        setState(() => _saving = false);
+      }
+    }
+  }
 }
 
 // =============================================================================
