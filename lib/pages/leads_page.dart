@@ -222,14 +222,18 @@ class _LeadsPageState extends State<LeadsPage> {
         // ── Status filter pills ──
         ValueListenableBuilder(
           valueListenable: LeadService.instance.leads,
-          builder: (context, List<LeadModel> allLeads, _) => Padding(
-            padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width < 500 ? 12 : 20, vertical: 4),
-            child: _StatusPillFilter(
-              selected: _selectedStatus,
-              onChanged: (s) => setState(() => _selectedStatus = s),
-              leads: allLeads,
-            ),
-          ),
+          builder: (context, List<LeadModel> allLeads, _) {
+            final marketId = context.watch<AppState>().selectedMarketId;
+            final marketLeads = allLeads.where((l) => l.country == marketId).toList();
+            return Padding(
+              padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width < 500 ? 12 : 20, vertical: 4),
+              child: _StatusPillFilter(
+                selected: _selectedStatus,
+                onChanged: (s) => setState(() => _selectedStatus = s),
+                leads: marketLeads,
+              ),
+            );
+          },
         ),
         const SizedBox(height: 4),
         // ── Table ──
@@ -237,7 +241,7 @@ class _LeadsPageState extends State<LeadsPage> {
           child: ValueListenableBuilder(
             valueListenable: LeadService.instance.leads,
             builder: (context, List<LeadModel> leads, _) {
-              final marketId = context.read<AppState>().selectedMarketId;
+              final marketId = context.watch<AppState>().selectedMarketId;
               final filtered = _applyFilters(leads, marketId);
               if (filtered.isEmpty) {
                 return _EmptyState(hasFilters: _searchQuery.isNotEmpty || _selectedStatus != null);

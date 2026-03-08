@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
+import '../state/app_state.dart';
 import '../theme.dart';
 
 // ─────────────────────────────────────────────────────────────
@@ -181,10 +183,11 @@ class _MasterclassPageState extends State<MasterclassPage>
         // Packages – responsive
         LayoutBuilder(builder: (context, constraints) {
           final wide = constraints.maxWidth > 700;
+          final isSA = context.watch<AppState>().selectedMarket.id == 'saudi_arabia';
           final packages = [
             _PackageData(
               title: 'Student Plan',
-              price: '2,000 EGP',
+              price: isSA ? '1,499 SAR' : '2,000 EGP',
               features: const [
                 '3 months access to Speekr.ai platform',
                 '2 on-ground coaching sessions',
@@ -194,7 +197,7 @@ class _MasterclassPageState extends State<MasterclassPage>
             ),
             _PackageData(
               title: 'Professional Plan',
-              price: '3,000 EGP',
+              price: isSA ? '1,999 SAR' : '3,000 EGP',
               badge: 'Most Popular',
               features: const [
                 '3 months access to Speekr.ai platform',
@@ -329,6 +332,7 @@ class _MasterclassPageState extends State<MasterclassPage>
   // ──────────────────── 2. About Tab ────────────────────
   Widget _buildAboutTab(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final isSA = context.watch<AppState>().selectedMarket.id == 'saudi_arabia';
 
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -340,8 +344,8 @@ class _MasterclassPageState extends State<MasterclassPage>
             padding: AppSpacing.paddingLg,
             child: Column(
               children: [
-                _infoRow(context, Icons.location_on_outlined,
-                    'On-ground coaching at our private studio, led by certified coaches'),
+                _infoRow(context, isSA ? Icons.videocam_outlined : Icons.location_on_outlined,
+                    isSA ? 'Live online coaching via Zoom, led by certified coaches' : 'On-ground coaching at our private studio, led by certified coaches'),
                 _infoRow(context, Icons.feedback_outlined,
                     'Personalized feedback after every session'),
                 _infoRow(context, Icons.schedule_outlined,
@@ -353,12 +357,15 @@ class _MasterclassPageState extends State<MasterclassPage>
 
         const SizedBox(height: AppSpacing.xl),
 
-        _sectionHeader(context, 'Studio Location', Icons.apartment_outlined),
+        _sectionHeader(context,
+            isSA ? 'Session Format' : 'Studio Location',
+            isSA ? Icons.videocam_outlined : Icons.apartment_outlined),
         const SizedBox(height: AppSpacing.md),
         Card(
           child: InkWell(
             onTap: () => _copyAndNotify(
-                'https://maps.app.goo.gl/SN7t4JFLegifyHss9', 'Location link copied'),
+                isSA ? 'Online coaching via Zoom' : 'https://maps.app.goo.gl/SN7t4JFLegifyHss9',
+                isSA ? 'Info copied' : 'Location link copied'),
             borderRadius: BorderRadius.circular(AppRadius.md),
             child: Padding(
             padding: AppSpacing.paddingLg,
@@ -371,7 +378,7 @@ class _MasterclassPageState extends State<MasterclassPage>
                     color: cs.primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
-                  child: Icon(Icons.location_on_rounded,
+                  child: Icon(isSA ? Icons.videocam_rounded : Icons.location_on_rounded,
                       color: cs.primary, size: 22),
                 ),
                 const SizedBox(width: AppSpacing.md),
@@ -379,11 +386,11 @@ class _MasterclassPageState extends State<MasterclassPage>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Maadi — Al-Zainy Tower',
+                      Text(isSA ? 'Online / Virtual Sessions' : 'Maadi — Al-Zainy Tower',
                           style: context.textStyles.bodyMedium
                               ?.copyWith(fontWeight: FontWeight.w600)),
                       const SizedBox(height: 2),
-                      Text('Maadi, Cairo  ·  Tap to copy Maps link',
+                      Text(isSA ? 'Live coaching via Zoom  ·  Tap to copy' : 'Maadi, Cairo  ·  Tap to copy Maps link',
                           style: context.textStyles.bodySmall
                               ?.copyWith(color: cs.onSurfaceVariant)),
                     ],
@@ -484,6 +491,7 @@ class _MasterclassPageState extends State<MasterclassPage>
   // ──────────────────── 3. Contact Tab ────────────────────
   Widget _buildContactTab(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final isSA = context.watch<AppState>().selectedMarket.id == 'saudi_arabia';
 
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -502,11 +510,12 @@ class _MasterclassPageState extends State<MasterclassPage>
 
         _contactCard(
           context,
-          icon: Icons.location_on_rounded,
-          label: 'Studio Location',
-          value: 'Maadi — Al-Zainy Tower',
+          icon: isSA ? Icons.videocam_rounded : Icons.location_on_rounded,
+          label: isSA ? 'Session Format' : 'Studio Location',
+          value: isSA ? 'Online / Virtual Sessions' : 'Maadi — Al-Zainy Tower',
           onTap: () => _copyAndNotify(
-              'https://maps.app.goo.gl/SN7t4JFLegifyHss9', 'Location link copied'),
+              isSA ? 'Online coaching via Zoom' : 'https://maps.app.goo.gl/SN7t4JFLegifyHss9',
+              isSA ? 'Info copied' : 'Location link copied'),
         ),
         const SizedBox(height: AppSpacing.sm),
 
@@ -623,7 +632,8 @@ class _MasterclassPageState extends State<MasterclassPage>
   // ──────────────────── 4. Scripts Tab ────────────────────
   Widget _buildScriptsTab(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final filtered = _allScripts.where((s) {
+    final scripts = context.watch<AppState>().selectedMarket.id == 'saudi_arabia' ? _allScriptsSA : _allScripts;
+    final filtered = scripts.where((s) {
       if (_audienceFilter != null && s.audience != _audienceFilter) return false;
       if (_channelFilter != null && s.channel != _channelFilter) return false;
       return true;
@@ -937,6 +947,85 @@ const _allScripts = <_Script>[
     _Channel.whatsapp,
     'Energetic',
     'جاهز تاخد كاريرك للمستوى الجاي؟ 🔥 Tick & Talk Masterclass مش بس كورس — دي تجربة بتغيرك! ٦ سيشنز كوتشينج، AI Roleplays، وفيدباك شخصي. كلها بـ٣٠٠٠ جنيه. 💪 يلا نتكلم!',
+  ),
+  _Script(
+    _Audience.team,
+    _Channel.whatsapp,
+    'Formal & Professional',
+    'أهلاً، أتمنى تكونوا بخير. 🙏 Tick & Talk بتقدم Team Plan مخصص للمؤسسات اللي عايزة ترفع مستوى مهارات التقديم عند فريقها. البرنامج مرن وبيتصمم على حسب احتياجات شركتكم لـ١٠+ أفراد. هل يناسبكم نحدد وقت نتناقش فيه؟',
+  ),
+  _Script(
+    _Audience.team,
+    _Channel.whatsapp,
+    'Inspiring & Emotional',
+    'أقوى asset في شركتك مش المنتج — هو الناس اللي بتقدمه. 🧠✨ Tick & Talk بتساعد فريقك يتكلم بثقة، يقنع بسهولة، ويفرق في كل رووم يدخله. Team Plan على حسب احتياجكم. كلمونا نعمل حاجة مميزة لفريقكم! 💼',
+  ),
+];
+
+// ──────────────────── Saudi Arabia Scripts (SAR pricing) ────────────────────
+const _allScriptsSA = <_Script>[
+  // ── Sales Call Scripts ──
+  _Script(
+    _Audience.student,
+    _Channel.salesCall,
+    'Friendly & Casual',
+    'ياسلام عليك! بتدور على حاجة تخليك تتميز في البريزنتيشن؟ عندنا في Tick & Talk ماستركلاس هتعلمك إزاي تعمل بريزنتيشن يفضل في دماغ الناس. بلان الطالب بـ١٤٩٩ ريال بس، هتاخد كوتشينج، سيشنز مسجلة، وAI Roleplays. إيه رأيك نتكلم أكتر؟',
+  ),
+  _Script(
+    _Audience.student,
+    _Channel.salesCall,
+    'Energetic',
+    'يلا بينا! لو عايز تبقى الشخص اللي كل ما يتكلم الكل يسمعه — ده وقتك! Tick & Talk Presentation Masterclass موجودة عشانك. بلان الطالب هتتدرب مع كوتشيز محترفين، هتعمل AI Roleplays، وهتخرج منها شخص تاني خالص. كلها بـ١٤٩٩ ريال!',
+  ),
+  _Script(
+    _Audience.professional,
+    _Channel.salesCall,
+    'Formal & Professional',
+    'أهلاً، معايا دقيقتين من وقتك؟ بنقدم في Tick & Talk برنامج Presentation Masterclass المتخصص في تطوير مهارات العرض والتقديم. البلان البروفيشنال بـ١٩٩٩ ريال بيشمل ٦ سيشنز كوتشينج أون جراوند، سيشنز مسجلة، و AI Roleplays.',
+  ),
+  _Script(
+    _Audience.professional,
+    _Channel.salesCall,
+    'Inspiring & Emotional',
+    'فكر معايا ثانية — كام مرة حسيت إن عندك أفكار عظيمة بس مش قادر توصلها صح؟ ده اللي Tick & Talk موجودين عشانه. مش بس بنعلمك تتكلم، بنعلمك تأثر. والكوتشيز عندنا هيساعدوك تلاقي صوتك الحقيقي.',
+  ),
+  _Script(
+    _Audience.team,
+    _Channel.salesCall,
+    'Formal & Professional',
+    'أهلاً، بتواصل معاك من Tick & Talk. بنقدم Team Plan مخصص للشركات اللي عايزة تطور مهارات التقديم عند فريقها. البلان مناسب لـ١٠+ موظفين، بيشمل Live Sessions، Recorded Sessions، وبرايسينج custom على حسب احتياجاتكم. ممكن نحدد وقت نتكلم فيه أكتر؟',
+  ),
+  _Script(
+    _Audience.team,
+    _Channel.salesCall,
+    'Energetic',
+    'تخيل إن كل واحد في فريقك يقدر يبيع الفكرة، يقنع العميل، ويكسب الرووم! ده بالظبط اللي Team Plan بتاعنا بيعمله. مش كورس عادي، ده استثمار حقيقي في فريقك!',
+  ),
+
+  // ── WhatsApp Message Scripts ──
+  _Script(
+    _Audience.student,
+    _Channel.whatsapp,
+    'Friendly & Casual',
+    'هاي! 👋 عارف إن أكتر حاجة بتفرق في انترفيوز وبريزنتيشنز هي إزاي بتتكلم؟ 🎤 Tick & Talk عندها Presentation Masterclass للطلاب بـ١٤٩٩ ريال بس! كوتشينج، سيشنز مسجلة، وAI Roleplays. ابعتلي وقادر تعرف أكتر 😊',
+  ),
+  _Script(
+    _Audience.student,
+    _Channel.whatsapp,
+    'Inspiring & Emotional',
+    'في ناس بتتكلم وكلها بتسمع... وفي ناس بتتكلم ومحدش بيسمع 💭 الفرق مش في الأفكار، الفرق في إزاي بتوصلها. Tick & Talk هتساعدك تبقى الأول. 🚀 البلان الطلابي بـ١٤٩٩ ريال — محتاج تعرف أكتر؟',
+  ),
+  _Script(
+    _Audience.professional,
+    _Channel.whatsapp,
+    'Formal & Professional',
+    'أهلاً، أتمنى تكون بخير. 🙏 بتواصل معاك للتعريف ببرنامج Presentation Masterclass من Tick & Talk، المتخصص في تطوير مهارات التقديم والتواصل المهني. البلان البروفيشنال متاح بـ١٩٩٩ ريال ويشمل ٦ سيشنز كوتشينج مع متخصصين معتمدين. هل تسمح أشاركك التفاصيل؟',
+  ),
+  _Script(
+    _Audience.professional,
+    _Channel.whatsapp,
+    'Energetic',
+    'جاهز تاخد كاريرك للمستوى الجاي؟ 🔥 Tick & Talk Masterclass مش بس كورس — دي تجربة بتغيرك! ٦ سيشنز كوتشينج، AI Roleplays، وفيدباك شخصي. كلها بـ١٩٩٩ ريال. 💪 يلا نتكلم!',
   ),
   _Script(
     _Audience.team,
