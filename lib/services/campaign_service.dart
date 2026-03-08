@@ -1,17 +1,15 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/campaign.dart';
+import 'api_client.dart';
 
-/// Client-side campaign CRUD persisted via SharedPreferences.
+/// Server-backed campaign CRUD — shared across all users.
 ///
 /// Campaigns are lightweight metadata objects — the lead–campaign link
 /// is stored in the existing `lead.campaign` string field (matched by
 /// campaign [id]).
 class CampaignService {
-  static const _prefsKey = 'campaigns_v1';
   static final CampaignService instance = CampaignService._();
   CampaignService._();
 
@@ -22,31 +20,25 @@ class CampaignService {
 
   // ─── Load ─────────────────────────────────────────────────────────────
 
+  /// Fetch all campaigns from the server API.
+  /// Safe to call multiple times — skips if already loaded.
+  /// Call [reload] to force a fresh fetch.
   Future<void> load() async {
     if (_loaded) return;
+    await reload();
+    _loaded = true;
+  }
+
+  /// Force-fetch campaigns from the server, bypassing the _loaded guard.
+  Future<void> reload() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_prefsKey);
-      if (raw != null && raw.isNotEmpty) {
-        final list = (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
-        campaigns.value = list.map((m) => CampaignModel.fromJson(m)).toList();
+      final list = await ApiClient.instance.getCampaigns();
+      if (list != null) {
+        campaigns.value =
+            list.map((m) => CampaignModel.fromJson(m)).toList();
       }
     } catch (e) {
       debugPrint('CampaignService.load error: $e');
-    } finally {
-      _loaded = true;
-    }
-  }
-
-  // ─── Persist ──────────────────────────────────────────────────────────
-
-  Future<void> _save() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final json = campaigns.value.map((c) => c.toJson()).toList();
-      await prefs.setString(_prefsKey, jsonEncode(json));
-    } catch (e) {
-      debugPrint('CampaignService._save error: $e');
     }
   }
 
@@ -67,21 +59,24 @@ class CampaignService {
       startDate: startDate,
       createdAt: now,
     );
-    campaigns.value = [...campaigns.value, c];
-    await _save();
-    return c;
+
+    final result = await ApiClient.instance.createCampaign(c.toJson());
+    final saved = result != null ? CampaignModel.fromJson(result) : c;
+
+    campaigns.value = [...campaigns.value, saved];
+    return saved;
   }
 
   Future<void> update(CampaignModel updated) async {
+    await ApiClient.instance.updateCampaign(updated.id, updated.toJson());
     campaigns.value = campaigns.value
         .map((c) => c.id == updated.id ? updated : c)
         .toList();
-    await _save();
   }
 
   Future<void> delete(String id) async {
+    await ApiClient.instance.deleteCampaign(id);
     campaigns.value = campaigns.value.where((c) => c.id != id).toList();
-    await _save();
   }
 
   CampaignModel? byId(String id) {

@@ -679,4 +679,72 @@ class ApiClient {
       return false;
     }
   }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // CAMPAIGNS
+  // ══════════════════════════════════════════════════════════════════════════
+
+  Future<List<Map<String, dynamic>>?> getCampaigns({String market = ''}) async {
+    try {
+      final params = <String, String>{};
+      if (market.isNotEmpty) params['market'] = market;
+      final uri = Uri.parse('$baseUrl/api/campaigns')
+          .replace(queryParameters: params.isNotEmpty ? params : null);
+      final resp = await http
+          .get(uri, headers: _headers)
+          .timeout(const Duration(seconds: 10));
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body) as Map<String, dynamic>;
+        _serverAvailable = true;
+        return (data['campaigns'] as List).cast<Map<String, dynamic>>();
+      }
+    } catch (e) {
+      debugPrint('ApiClient.getCampaigns error: $e');
+      _serverAvailable = false;
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> createCampaign(Map<String, dynamic> campaign) async {
+    try {
+      final resp = await http
+          .post(Uri.parse('$baseUrl/api/campaigns'),
+              headers: _headers, body: jsonEncode(campaign))
+          .timeout(const Duration(seconds: 10));
+      if (resp.statusCode == 201) {
+        _serverAvailable = true;
+        return jsonDecode(resp.body) as Map<String, dynamic>;
+      }
+    } catch (e) {
+      debugPrint('ApiClient.createCampaign error: $e');
+      _serverAvailable = false;
+    }
+    return null;
+  }
+
+  Future<bool> updateCampaign(String id, Map<String, dynamic> fields) async {
+    try {
+      final resp = await http
+          .put(Uri.parse('$baseUrl/api/campaigns/$id'),
+              headers: _headers, body: jsonEncode(fields))
+          .timeout(const Duration(seconds: 10));
+      _serverAvailable = resp.statusCode == 200;
+      return _serverAvailable;
+    } catch (e) {
+      debugPrint('ApiClient.updateCampaign error: $e');
+      _serverAvailable = false;
+      return false;
+    }
+  }
+
+  Future<bool> deleteCampaign(String id) async {
+    try {
+      final resp = await http
+          .delete(Uri.parse('$baseUrl/api/campaigns/$id'), headers: _headers)
+          .timeout(const Duration(seconds: 10));
+      return resp.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
 }

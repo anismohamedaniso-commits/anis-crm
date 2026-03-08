@@ -132,6 +132,31 @@ drop policy if exists "Service role full access on custom_fields" on public.cust
 create policy "Service role full access on custom_fields"
   on public.custom_fields for all to service_role
   using (true) with check (true);
+
+-- ── CAMPAIGNS ────────────────────────────────────────────────────────────────
+create table if not exists public.campaigns (
+  id          text primary key,
+  name        text not null default '',
+  market      text not null default 'egypt',
+  budget      double precision default 0,
+  start_date  text default null,
+  created_at  text not null default '',
+  updated_at  text not null default ''
+);
+
+create index if not exists idx_campaigns_market on public.campaigns(market);
+
+alter table public.campaigns enable row level security;
+
+drop policy if exists "Campaigns full access for authenticated" on public.campaigns;
+create policy "Campaigns full access for authenticated"
+  on public.campaigns for all to authenticated
+  using (true) with check (true);
+
+drop policy if exists "Service role full access on campaigns" on public.campaigns;
+create policy "Service role full access on campaigns"
+  on public.campaigns for all to service_role
+  using (true) with check (true);
 """
 
 

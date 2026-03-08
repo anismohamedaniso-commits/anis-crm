@@ -79,6 +79,19 @@ class DealCreate(BaseModel):
     expected_close: Optional[str] = None
     notes: Optional[str] = Field(None, max_length=5000)
 
+class CampaignCreate(BaseModel):
+    id: Optional[str] = None
+    name: str = Field(..., min_length=1, max_length=200)
+    market: str = Field('egypt', max_length=50)
+    budget: Optional[float] = Field(0, ge=0)
+    start_date: Optional[str] = None
+
+class CampaignUpdate(BaseModel):
+    name: Optional[str] = Field(None, max_length=200)
+    market: Optional[str] = Field(None, max_length=50)
+    budget: Optional[float] = Field(None, ge=0)
+    start_date: Optional[str] = None
+
 
 OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://127.0.0.1:11434')
 API_KEY = os.environ.get('API_KEY')
@@ -2496,6 +2509,71 @@ async def delete_custom_field(field_id: str, req: Request):
     db.delete_custom_field(field_id)
     _audit_log({'action': 'custom_field_deleted', 'field_id': field_id, 'by': user['id']})
     return JSONResponse(content={'ok': True})
+
+
+# =============================================================================
+# CAMPAIGNS
+# =============================================================================
+
+@app.get('/api/campaigns')
+async def get_campaigns(req: Request, market: str = ''):
+    """Return all campaigns, optionally filtered by market."""
+    _require_user(req)
+    campaigns = db.get_campaigns(market=market)
+    return JSONResponse(content={"campaigns": campaigns})
+
+
+@app.get('/api/campaigns/{campaign_id}')
+async def get_campaign(campaign_id: str, req: Request):
+    """Return a single campaign by ID."""
+    _require_user(req)
+    c = db.get_campaign(campaign_id)
+    if not c:
+        raise HTTPException(status_code=404, detail='Campaign not found')
+    return JSONResponse(content=c)
+
+
+@app.post('/api/campaigns')
+async def create_campaign_api(req: Request):
+    """Create a new campaign."""
+    _require_user(req)
+    payload = await req.json()
+    try:
+        validated = CampaignCreate(**payload)
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f'Validation error: {e}')
+    data = validated.model_dump(exclude_none=True)
+    campaign = db.create_campaign(data)
+    _audit_log({'action': 'campaign_created', 'campaign_id': campaign['id']})
+    return JSONResponse(status_code=201, content=campaign)
+
+
+@app.put('/api/campaigns/{campaign_id}')
+async def update_campaign_api(campaign_id: str, req: Request):
+    """Update a campaign by ID."""
+    _require_user(req)
+    payload = await req.json()
+    try:
+        validated = CampaignUpdate(**payload)
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f'Validation error: {e}')
+    campaign = db.update_campaign(campaign_id, validated.model_dump(exclude_none=True))
+    if not campaign:
+        raise HTTPException(status_code=404, detail='Campaign not found')
+    _audit_log({'action': 'campaign_updated', 'campaign_id': campaign_id})
+    return JSONResponse(content=campaign)
+
+
+@app.delete('/api/campaigns/{campaign_id}')
+async def delete_campaign_api(campaign_id: str, req: Request):
+    """Delete a campaign by ID."""
+    _require_user(req)
+    c = db.get_campaign(campaign_id)
+    if not c:
+        raise HTTPException(status_code=404, detail='Campaign not found')
+    db.delete_campaign(campaign_id)
+    _audit_log({'action': 'campaign_deleted', 'campaign_id': campaign_id})
+    return JSONResponse(content={"ok": True})
 
 
 # ── Serve Flutter web build (SPA catch-all — must be last) ──

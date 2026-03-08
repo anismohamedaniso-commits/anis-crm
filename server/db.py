@@ -28,6 +28,7 @@ TEAM_ACTIVITIES_FILE = DATA_DIR / 'team_activities.json'
 NOTIFICATIONS_FILE = DATA_DIR / 'notifications.json'
 CHAT_CHANNELS_FILE = DATA_DIR / 'chat_channels.json'
 CHAT_MESSAGES_FILE = DATA_DIR / 'chat_messages.json'
+CAMPAIGNS_FILE = DATA_DIR / 'campaigns.json'
 
 
 # ── JSON helpers (legacy) ────────────────────────────────────────────────────
@@ -94,6 +95,8 @@ class CrmDatabase:
                   'created_at', 'updated_at'},
         'notifications': {'id', 'user_id', 'type', 'title', 'body', 'action_url',
                           'from_user_id', 'from_user_name', 'read', 'ts'},
+        'campaigns': {'id', 'name', 'market', 'budget', 'start_date',
+                      'created_at', 'updated_at'},
     }
 
     def _sb_filter_cols(self, table: str, row: dict) -> dict:
@@ -319,6 +322,71 @@ class CrmDatabase:
         tasks = [t for t in tasks if t['id'] != task_id]
         _save_json(TASKS_FILE, tasks)
         return task
+
+    # ─── CAMPAIGNS ─────────────────────────────────────────────────────────
+    def _campaigns_use_db(self) -> bool:
+        """Check if campaigns table exists in Supabase (cached)."""
+        if not self._use_db:
+            return False
+        if not hasattr(self, '_campaigns_db_ok'):
+            try:
+                self._sb.table('campaigns').select('id').limit(1).execute()
+                self._campaigns_db_ok = True
+            except Exception:
+                self._campaigns_db_ok = False
+        return self._campaigns_db_ok
+
+    def get_campaigns(self, market: str = '') -> list[dict]:
+        if self._campaigns_use_db():
+            filters = {'market': market} if market else None
+            return self._sb_select('campaigns', filters=filters,
+                                   order_col='created_at')
+        campaigns = _load_json(CAMPAIGNS_FILE)
+        if market:
+            campaigns = [c for c in campaigns if c.get('market') == market or c.get('market') == 'all']
+        campaigns.sort(key=lambda c: c.get('created_at', ''), reverse=True)
+        return campaigns
+
+    def get_campaign(self, campaign_id: str) -> dict | None:
+        if self._campaigns_use_db():
+            res = self._sb.table('campaigns').select('*').eq('id', campaign_id).execute()
+            return res.data[0] if res.data else None
+        campaigns = _load_json(CAMPAIGNS_FILE)
+        return next((c for c in campaigns if c['id'] == campaign_id), None)
+
+    def create_campaign(self, campaign: dict) -> dict:
+        now = _now_iso()
+        campaign.setdefault('id', f"camp_{uuid.uuid4().hex[:8]}")
+        campaign.setdefault('created_at', now)
+        campaign.setdefault('updated_at', now)
+        campaign.setdefault('market', 'egypt')
+        campaign.setdefault('budget', 0)
+        if self._campaigns_use_db():
+            return self._sb_insert('campaigns', campaign)
+        campaigns = _load_json(CAMPAIGNS_FILE)
+        campaigns.insert(0, campaign)
+        _save_json(CAMPAIGNS_FILE, campaigns)
+        return campaign
+
+    def update_campaign(self, campaign_id: str, fields: dict) -> dict | None:
+        fields['updated_at'] = _now_iso()
+        if self._campaigns_use_db():
+            return self._sb_update('campaigns', campaign_id, fields)
+        campaigns = _load_json(CAMPAIGNS_FILE)
+        for c in campaigns:
+            if c['id'] == campaign_id:
+                c.update(fields)
+                _save_json(CAMPAIGNS_FILE, campaigns)
+                return c
+        return None
+
+    def delete_campaign(self, campaign_id: str) -> bool:
+        if self._campaigns_use_db():
+            return self._sb_delete('campaigns', campaign_id)
+        campaigns = _load_json(CAMPAIGNS_FILE)
+        campaigns = [c for c in campaigns if c['id'] != campaign_id]
+        _save_json(CAMPAIGNS_FILE, campaigns)
+        return True
 
     # ─── TEAM ACTIVITIES ──────────────────────────────────────────────────
     def post_team_activity(self, user: dict, action: str, target_type: str,
