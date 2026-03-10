@@ -100,11 +100,36 @@ class CrmDatabase:
                       'created_at', 'updated_at'},
     }
 
+    # Cache of *actual* columns discovered from Supabase at runtime.
+    _actual_cols: dict = {}       # table -> set of column names
+
+    def _sb_actual_cols(self, table: str) -> set:
+        """Discover the real columns of a Supabase table (cached per table)."""
+        if table not in self._actual_cols:
+            try:
+                # Insert an empty probe row that will fail but the error
+                # tells us nothing useful.  Instead, do a cheap SELECT and
+                # inspect the returned dict keys.
+                row = self._sb.table(table).select('*').limit(1).execute()
+                if row.data:
+                    self._actual_cols[table] = set(row.data[0].keys())
+                else:
+                    # Table is empty — try inserting a probe row to detect
+                    # columns from the error, or fall back to _TABLE_COLS.
+                    self._actual_cols[table] = self._TABLE_COLS.get(table, set())
+            except Exception:
+                self._actual_cols[table] = self._TABLE_COLS.get(table, set())
+        return self._actual_cols[table]
+
     def _sb_filter_cols(self, table: str, row: dict) -> dict:
-        """Strip columns that don't exist in the Supabase table schema."""
+        """Strip columns that don't actually exist in the Supabase table."""
+        # Use runtime-detected columns first, fall back to static registry
+        actual = self._sb_actual_cols(table)
+        if actual:
+            return {k: v for k, v in row.items() if k in actual}
         known = self._TABLE_COLS.get(table)
         if not known:
-            return row  # table not in registry — pass through
+            return row
         return {k: v for k, v in row.items() if k in known}
 
     def _sb_select(self, table: str, filters: dict | None = None,
@@ -116,14 +141,20 @@ class CrmDatabase:
             for k, v in filters.items():
                 q = q.eq(k, v)
         if order_col:
-            q = q.order(order_col, desc=not ascending)
+            # Only order by columns that actually exist
+            actual = self._sb_actual_cols(table)
+            if not actual or order_col in actual:
+                q = q.order(order_col, desc=not ascending)
         if limit > 0:
             q = q.range(offset, offset + limit - 1)
         return q.execute().data or []
 
     def _sb_insert(self, table: str, row: dict) -> dict:
         safe_row = self._sb_filter_cols(table, row)
-        return self._sb.table(table).insert(safe_row).execute().data[0]
+        result = self._sb.table(table).insert(safe_row).execute().data[0]
+        # Invalidate column cache so new columns are picked up after migrations
+        self._actual_cols.pop(table, None)
+        return result
 
     def _sb_update(self, table: str, row_id: str, fields: dict) -> dict | None:
         safe_fields = self._sb_filter_cols(table, fields)

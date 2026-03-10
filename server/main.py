@@ -724,6 +724,8 @@ async def root():
         "ok": True,
         "proxied_to": OLLAMA_URL,
         "supabase": bool(SUPABASE_URL),
+        "db_mode": "supabase" if db.using_db else "json_files",
+        "campaigns_db": db._campaigns_use_db() if db.using_db else False,
         "jwt_verification": "jwks" if _jwks_client else ("hs256" if SUPABASE_JWT_SECRET else "none"),
         "smtp_configured": bool(SMTP_PASS),
         "auth_mode": "api_key" if API_KEY else ("jwt_only" if _jwks_client else "dev_mode"),
