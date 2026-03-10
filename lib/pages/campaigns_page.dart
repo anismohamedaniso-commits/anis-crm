@@ -111,12 +111,27 @@ class _CampaignsPageState extends State<CampaignsPage> {
       ),
     );
     if (confirmed == true) {
-      // Clear campaign from leads that reference this campaign
-      final leads = LeadService.instance.leads.value.where((l) => l.campaign == campaign.id).toList();
-      for (final l in leads) {
-        await LeadService.instance.update(l.copyWith(campaign: ''));
+      try {
+        // Clear campaign from leads that reference this campaign
+        final leads = LeadService.instance.leads.value.where((l) => l.campaign == campaign.id).toList();
+        for (final l in leads) {
+          await LeadService.instance.update(l.copyWith(campaign: ''));
+        }
+        await CampaignService.instance.delete(campaign.id);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('"${campaign.name}" deleted')),
+          );
+          setState(() {});
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Delete failed: $e')),
+          );
+          setState(() {});
+        }
       }
-      await CampaignService.instance.delete(campaign.id);
     }
   }
 }

@@ -81,8 +81,15 @@ class CampaignService {
   }
 
   Future<void> delete(String id) async {
-    await ApiClient.instance.deleteCampaign(id);
+    final ok = await ApiClient.instance.deleteCampaign(id);
+    // Always remove locally for immediate UI feedback
     campaigns.value = campaigns.value.where((c) => c.id != id).toList();
+    if (!ok) {
+      // If server delete failed, reload from server to restore actual state
+      debugPrint('Campaign delete may have failed on server — reloading');
+      await reload();
+      throw Exception('Failed to delete campaign on server');
+    }
   }
 
   CampaignModel? byId(String id) {

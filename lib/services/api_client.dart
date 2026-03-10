@@ -741,9 +741,12 @@ class ApiClient {
     try {
       final resp = await http
           .delete(Uri.parse('$baseUrl/api/campaigns/$id'), headers: _headers)
-          .timeout(const Duration(seconds: 10));
-      return resp.statusCode == 200;
-    } catch (_) {
+          .timeout(const Duration(seconds: 15));
+      if (resp.statusCode == 200) return true;
+      debugPrint('deleteCampaign failed: ${resp.statusCode} ${resp.body}');
+      return false;
+    } catch (e) {
+      debugPrint('deleteCampaign error: $e');
       return false;
     }
   }
