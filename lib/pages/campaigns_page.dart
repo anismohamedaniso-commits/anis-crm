@@ -26,7 +26,8 @@ class _CampaignsPageState extends State<CampaignsPage> {
   @override
   void initState() {
     super.initState();
-    CampaignService.instance.load();
+    // Always reload from server so campaigns created by other users are visible
+    CampaignService.instance.reload();
     LeadService.instance.load();
   }
 
