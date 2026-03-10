@@ -95,7 +95,8 @@ class CrmDatabase:
                   'created_at', 'updated_at'},
         'notifications': {'id', 'user_id', 'type', 'title', 'body', 'action_url',
                           'from_user_id', 'from_user_name', 'read', 'ts'},
-        'campaigns': {'id', 'name', 'market', 'budget', 'start_date',
+        'campaigns': {'id', 'name', 'description', 'market', 'budget',
+                      'status', 'start_date', 'end_date',
                       'created_at', 'updated_at'},
     }
 

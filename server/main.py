@@ -82,15 +82,21 @@ class DealCreate(BaseModel):
 class CampaignCreate(BaseModel):
     id: Optional[str] = None
     name: str = Field(..., min_length=1, max_length=200)
+    description: Optional[str] = Field('', max_length=2000)
     market: str = Field('egypt', max_length=50)
     budget: Optional[float] = Field(0, ge=0)
+    status: Optional[str] = Field('active', max_length=20)
     start_date: Optional[str] = None
+    end_date: Optional[str] = None
 
 class CampaignUpdate(BaseModel):
     name: Optional[str] = Field(None, max_length=200)
+    description: Optional[str] = Field(None, max_length=2000)
     market: Optional[str] = Field(None, max_length=50)
     budget: Optional[float] = Field(None, ge=0)
+    status: Optional[str] = Field(None, max_length=20)
     start_date: Optional[str] = None
+    end_date: Optional[str] = None
 
 
 OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://127.0.0.1:11434')

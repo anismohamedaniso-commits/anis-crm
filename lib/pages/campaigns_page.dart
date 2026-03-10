@@ -229,6 +229,9 @@ class _CampaignCardState extends State<_CampaignCard> {
 
     final totalLeads = leads.length;
     final cpl = totalLeads > 0 ? c.budget / totalLeads : 0.0;
+    final converted = leads.where((l) => l.status == LeadStatus.converted).length;
+    final conversionRate = totalLeads > 0 ? (converted / totalLeads * 100) : 0.0;
+    final cpa = converted > 0 ? c.budget / converted : 0.0;
 
     // Status breakdown
     final statusCounts = <LeadStatus, int>{};
@@ -269,12 +272,30 @@ class _CampaignCardState extends State<_CampaignCard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(c.name, style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(c.name, style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                                  overflow: TextOverflow.ellipsis),
+                            ),
+                            const SizedBox(width: 8),
+                            _StatusBadge(status: c.status),
+                          ],
+                        ),
                         const SizedBox(height: 2),
                         Text(
-                          'Started ${_fmtDate(c.startDate)}  ·  ${_marketLabel(c.market)}',
+                          '${_fmtDate(c.startDate)}${c.endDate != null ? ' – ${_fmtDate(c.endDate!)}' : ''}  ·  ${_marketLabel(c.market)}',
                           style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
                         ),
+                        if (c.description.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            c.description,
+                            style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant.withValues(alpha: 0.7)),
+                            maxLines: _expanded ? 5 : 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -282,11 +303,20 @@ class _CampaignCardState extends State<_CampaignCard> {
                     icon: Icon(Icons.more_vert_rounded, size: 20, color: cs.onSurfaceVariant),
                     itemBuilder: (_) => [
                       const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                      if (c.isActive)
+                        const PopupMenuItem(value: 'pause', child: Text('Pause Campaign')),
+                      if (c.isPaused)
+                        const PopupMenuItem(value: 'resume', child: Text('Resume Campaign')),
+                      if (!c.isCompleted)
+                        const PopupMenuItem(value: 'complete', child: Text('Mark Completed')),
                       const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: Colors.red))),
                     ],
                     onSelected: (v) {
                       if (v == 'edit') widget.onEdit();
                       if (v == 'delete') widget.onDelete();
+                      if (v == 'pause') _setStatus('paused');
+                      if (v == 'resume') _setStatus('active');
+                      if (v == 'complete') _setStatus('completed');
                     },
                   ),
                   Icon(
@@ -307,7 +337,7 @@ class _CampaignCardState extends State<_CampaignCard> {
                 _KpiItem('Total Leads', '$totalLeads', Icons.people_outline_rounded, cs.primary),
                 _KpiItem('Budget', mkt.fmtRevenue(c.budget), Icons.account_balance_wallet_outlined, Colors.teal),
                 _KpiItem('CPL', totalLeads > 0 ? '${cpl.toStringAsFixed(0)} ${mkt.currency}' : '—', Icons.trending_down_rounded, Colors.orange),
-                _KpiItem('Converted', '${statusCounts[LeadStatus.converted] ?? 0}', Icons.check_circle_outline_rounded, Colors.green),
+                _KpiItem('Converted', '$converted (${conversionRate.toStringAsFixed(0)}%)', Icons.check_circle_outline_rounded, Colors.green),
               ];
               if (wide) {
                 return Row(
@@ -330,17 +360,49 @@ class _CampaignCardState extends State<_CampaignCard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Lead Status Breakdown',
-                      style: tt.labelLarge?.copyWith(fontWeight: FontWeight.w600, color: cs.onSurface)),
+                  // ── Campaign Overview Section ──
+                  _SectionHeader(title: 'Campaign Overview', icon: Icons.info_outline_rounded),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 16,
+                    runSpacing: 8,
+                    children: [
+                      _DetailChip(label: 'Duration', value: '${c.durationDays} days'),
+                      _DetailChip(label: 'Status', value: c.status[0].toUpperCase() + c.status.substring(1)),
+                      _DetailChip(label: 'Market', value: _marketLabel(c.market)),
+                      _DetailChip(label: 'Created', value: _fmtDate(c.createdAt)),
+                    ],
+                  ),
+
+                  // ── Lead Status Breakdown ──
+                  const SizedBox(height: 18),
+                  _SectionHeader(title: 'Lead Status Breakdown', icon: Icons.pie_chart_outline_rounded),
                   const SizedBox(height: 12),
                   if (leads.isEmpty)
                     Text('No leads assigned yet', style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant))
-                  else
+                  else ...[
+                    // Status bar visualization
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: SizedBox(
+                        height: 10,
+                        child: Row(
+                          children: LeadStatus.values
+                              .where((s) => (statusCounts[s] ?? 0) > 0)
+                              .map((s) => Expanded(
+                                    flex: statusCounts[s]!,
+                                    child: Container(color: _statusColor(s, cs)),
+                                  ))
+                              .toList(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
                     ...LeadStatus.values.where((s) => (statusCounts[s] ?? 0) > 0).map((s) {
                       final count = statusCounts[s]!;
                       final pct = (count / totalLeads * 100).toStringAsFixed(0);
                       return Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.only(bottom: 6),
                         child: Row(
                           children: [
                             Container(
@@ -362,39 +424,64 @@ class _CampaignCardState extends State<_CampaignCard> {
                         ),
                       );
                     }),
-                  const SizedBox(height: 8),
-                  // Budget efficiency
+                  ],
+
+                  // ── Cost Analytics Section ──
                   if (totalLeads > 0) ...[
-                    Divider(height: 1, color: cs.outline.withValues(alpha: 0.08)),
+                    const SizedBox(height: 18),
+                    _SectionHeader(title: 'Cost Analytics', icon: Icons.analytics_outlined),
                     const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Icon(Icons.analytics_outlined, size: 16, color: cs.primary),
-                        const SizedBox(width: 6),
-                        Text('Cost Per Lead: ', style: tt.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
-                        Text('${cpl.toStringAsFixed(2)} ${mkt.currency}',
-                            style: tt.bodySmall?.copyWith(color: cs.primary, fontWeight: FontWeight.w700)),
-                      ],
+                    _AnalyticsRow(
+                      icon: Icons.trending_down_rounded,
+                      color: Colors.orange,
+                      label: 'Cost Per Lead (CPL)',
+                      value: '${cpl.toStringAsFixed(2)} ${mkt.currency}',
                     ),
-                    if ((statusCounts[LeadStatus.converted] ?? 0) > 0) ...[
-                      const SizedBox(height: 6),
-                      Builder(builder: (_) {
-                        final conv = statusCounts[LeadStatus.converted]!;
-                        final cpa = c.budget / conv;
-                        return Row(
-                          children: [
-                            Icon(Icons.check_circle_outline, size: 16, color: Colors.green),
-                            const SizedBox(width: 6),
-                            Text('Cost Per Acquisition: ', style: tt.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
-                            Text('${cpa.toStringAsFixed(2)} ${mkt.currency}',
-                                style: tt.bodySmall?.copyWith(color: Colors.green, fontWeight: FontWeight.w700)),
-                          ],
-                        );
-                      }),
+                    if (converted > 0) ...[
+                      const SizedBox(height: 8),
+                      _AnalyticsRow(
+                        icon: Icons.check_circle_outline,
+                        color: Colors.green,
+                        label: 'Cost Per Acquisition (CPA)',
+                        value: '${cpa.toStringAsFixed(2)} ${mkt.currency}',
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    _AnalyticsRow(
+                      icon: Icons.speed_rounded,
+                      color: Colors.deepPurple,
+                      label: 'Conversion Rate',
+                      value: '${conversionRate.toStringAsFixed(1)}%',
+                    ),
+                    if (c.durationDays > 0) ...[
+                      const SizedBox(height: 8),
+                      _AnalyticsRow(
+                        icon: Icons.calendar_month_rounded,
+                        color: Colors.blue,
+                        label: 'Leads / Day',
+                        value: (totalLeads / c.durationDays).toStringAsFixed(1),
+                      ),
+                      const SizedBox(height: 8),
+                      _AnalyticsRow(
+                        icon: Icons.attach_money_rounded,
+                        color: Colors.teal,
+                        label: 'Daily Spend Rate',
+                        value: '${(c.budget / c.durationDays).toStringAsFixed(0)} ${mkt.currency}/day',
+                      ),
+                    ],
+                    if (converted > 0) ...[
+                      const SizedBox(height: 8),
+                      _AnalyticsRow(
+                        icon: Icons.show_chart_rounded,
+                        color: Colors.indigo,
+                        label: 'ROI Estimate',
+                        value: '${(converted / totalLeads * 100).toStringAsFixed(0)}% yield',
+                      ),
                     ],
                   ],
+
                   // ── Assign Leads button ──
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 18),
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
@@ -410,6 +497,11 @@ class _CampaignCardState extends State<_CampaignCard> {
         ],
       ),
     );
+  }
+
+  Future<void> _setStatus(String newStatus) async {
+    final updated = widget.campaign.copyWith(status: newStatus);
+    await CampaignService.instance.update(updated);
   }
 
   Future<void> _showBulkAssign(BuildContext context) async {
@@ -492,6 +584,101 @@ class _KpiItem {
   final IconData icon;
   final Color color;
   const _KpiItem(this.label, this.value, this.icon, this.color);
+}
+
+// =============================================================================
+// HELPER WIDGETS
+// =============================================================================
+
+class _StatusBadge extends StatelessWidget {
+  final String status;
+  const _StatusBadge({required this.status});
+  @override
+  Widget build(BuildContext context) {
+    final (Color bg, Color fg, IconData icon) = switch (status) {
+      'active' => (Colors.green.shade50, Colors.green.shade700, Icons.play_circle_outline_rounded),
+      'paused' => (Colors.orange.shade50, Colors.orange.shade700, Icons.pause_circle_outline_rounded),
+      'completed' => (Colors.blue.shade50, Colors.blue.shade700, Icons.check_circle_outline_rounded),
+      _ => (Colors.grey.shade100, Colors.grey.shade600, Icons.circle_outlined),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: fg),
+          const SizedBox(width: 4),
+          Text(status[0].toUpperCase() + status.substring(1),
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: fg)),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  const _SectionHeader({required this.title, required this.icon});
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: cs.primary),
+        const SizedBox(width: 6),
+        Text(title, style: tt.labelLarge?.copyWith(fontWeight: FontWeight.w700, color: cs.onSurface)),
+      ],
+    );
+  }
+}
+
+class _DetailChip extends StatelessWidget {
+  final String label;
+  final String value;
+  const _DetailChip({required this.label, required this.value});
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label, style: tt.labelSmall?.copyWith(color: cs.onSurfaceVariant, fontSize: 10)),
+          Text(value, style: tt.labelMedium?.copyWith(fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+}
+
+class _AnalyticsRow extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String label;
+  final String value;
+  const _AnalyticsRow({required this.icon, required this.color, required this.label, required this.value});
+  @override
+  Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 8),
+        Expanded(child: Text(label, style: tt.bodySmall?.copyWith(fontWeight: FontWeight.w500))),
+        Text(value, style: tt.bodySmall?.copyWith(color: color, fontWeight: FontWeight.w700)),
+      ],
+    );
+  }
 }
 
 // =============================================================================
@@ -841,9 +1028,12 @@ class _CampaignEditorDialog extends StatefulWidget {
 
 class _CampaignEditorDialogState extends State<_CampaignEditorDialog> {
   final _nameCtrl = TextEditingController();
+  final _descCtrl = TextEditingController();
   final _budgetCtrl = TextEditingController();
   late String _marketId;
+  late String _status;
   late DateTime _startDate;
+  DateTime? _endDate;
   bool _saving = false;
 
   bool get _isEdit => widget.existing != null;
@@ -853,11 +1043,15 @@ class _CampaignEditorDialogState extends State<_CampaignEditorDialog> {
     super.initState();
     if (_isEdit) {
       _nameCtrl.text = widget.existing!.name;
+      _descCtrl.text = widget.existing!.description;
       _budgetCtrl.text = widget.existing!.budget.toStringAsFixed(0);
       _marketId = widget.existing!.market;
+      _status = widget.existing!.status;
       _startDate = widget.existing!.startDate;
+      _endDate = widget.existing!.endDate;
     } else {
       _marketId = widget.market.id;
+      _status = 'active';
       _startDate = DateTime.now();
     }
   }
@@ -865,84 +1059,181 @@ class _CampaignEditorDialogState extends State<_CampaignEditorDialog> {
   @override
   void dispose() {
     _nameCtrl.dispose();
+    _descCtrl.dispose();
     _budgetCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(_isEdit ? 'Edit Campaign' : 'New Campaign'),
-      content: SingleChildScrollView(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(
-            controller: _nameCtrl,
-            decoration: const InputDecoration(labelText: 'Campaign Name'),
-            textCapitalization: TextCapitalization.words,
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _budgetCtrl,
-            decoration: InputDecoration(
-              labelText: 'Budget (${Market.byId(_marketId).currency})',
-              prefixText: '${Market.byId(_marketId).currencySymbol} ',
-            ),
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          ),
-          const SizedBox(height: 12),
-          Row(children: [
-            const Text('Market:'),
-            const SizedBox(width: 8),
-            Flexible(
-              child: DropdownButton<String>(
+    final cs = Theme.of(context).colorScheme;
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(
+                children: [
+                  Icon(Icons.campaign_rounded, size: 22, color: cs.primary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(_isEdit ? 'Edit Campaign' : 'New Campaign',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Campaign name
+              TextField(
+                controller: _nameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Campaign Name *',
+                  hintText: 'e.g. Facebook Lead Ads - Dec 2024',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                textCapitalization: TextCapitalization.words,
+              ),
+              const SizedBox(height: 14),
+              // Description
+              TextField(
+                controller: _descCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Description',
+                  hintText: 'Campaign objective, target audience, notes…',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                  alignLabelWithHint: true,
+                ),
+                maxLines: 3,
+                minLines: 2,
+                textCapitalization: TextCapitalization.sentences,
+              ),
+              const SizedBox(height: 14),
+              // Budget + Status row
+              Row(children: [
+                Expanded(
+                  flex: 3,
+                  child: TextField(
+                    controller: _budgetCtrl,
+                    decoration: InputDecoration(
+                      labelText: 'Budget (${Market.byId(_marketId).currency})',
+                      prefixText: '${Market.byId(_marketId).currencySymbol} ',
+                      border: const OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: DropdownButtonFormField<String>(
+                    value: _status,
+                    isDense: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Status',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'active', child: Text('Active')),
+                      DropdownMenuItem(value: 'paused', child: Text('Paused')),
+                      DropdownMenuItem(value: 'completed', child: Text('Completed')),
+                    ],
+                    onChanged: (v) => setState(() => _status = v ?? _status),
+                  ),
+                ),
+              ]),
+              const SizedBox(height: 14),
+              // Market
+              DropdownButtonFormField<String>(
                 value: _marketId,
-                isExpanded: true,
+                isDense: true,
+                decoration: const InputDecoration(
+                  labelText: 'Market',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                ),
                 items: [
                   ...Market.all.map((m) => DropdownMenuItem(value: m.id, child: Text('${m.flag} ${m.label}'))),
                   const DropdownMenuItem(value: 'all', child: Text('🌍 All Markets')),
                 ],
                 onChanged: (v) => setState(() => _marketId = v ?? _marketId),
               ),
-            ),
-          ]),
-          const SizedBox(height: 12),
-          Row(children: [
-            const Text('Start Date:'),
-            const SizedBox(width: 8),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _pickDate,
-                icon: const Icon(Icons.calendar_today_rounded, size: 16),
-                label: Text(_fmtDate(_startDate)),
+              const SizedBox(height: 14),
+              // Dates row
+              Row(children: [
+                Expanded(
+                  child: _DateButton(
+                    label: 'Start Date',
+                    date: _startDate,
+                    onPick: () => _pickDate(isStart: true),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _DateButton(
+                    label: 'End Date',
+                    date: _endDate,
+                    hint: 'Optional',
+                    onPick: () => _pickDate(isStart: false),
+                    onClear: _endDate != null ? () => setState(() => _endDate = null) : null,
+                  ),
+                ),
+              ]),
+              const SizedBox(height: 20),
+              // Actions
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: _saving ? null : _save,
+                    child: _saving
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                        : Text(_isEdit ? 'Update' : 'Create'),
+                  ),
+                ],
               ),
-            ),
-          ]),
-        ]),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-        FilledButton(
-          onPressed: _saving ? null : _save,
-          child: _saving
-              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-              : Text(_isEdit ? 'Update' : 'Create'),
+            ]),
+          ),
         ),
-      ],
+      ),
     );
   }
 
-  Future<void> _pickDate() async {
+  Future<void> _pickDate({required bool isStart}) async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: _startDate,
+      initialDate: isStart ? _startDate : (_endDate ?? DateTime.now()),
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
     );
-    if (picked != null) setState(() => _startDate = picked);
+    if (picked != null) {
+      setState(() {
+        if (isStart) {
+          _startDate = picked;
+        } else {
+          _endDate = picked;
+        }
+      });
+    }
   }
 
   Future<void> _save() async {
     final name = _nameCtrl.text.trim();
+    final description = _descCtrl.text.trim();
     final budget = double.tryParse(_budgetCtrl.text.trim()) ?? 0;
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Name is required')));
@@ -953,18 +1244,25 @@ class _CampaignEditorDialogState extends State<_CampaignEditorDialog> {
       if (_isEdit) {
         final updated = widget.existing!.copyWith(
           name: name,
+          description: description,
           market: _marketId,
           budget: budget,
+          status: _status,
           startDate: _startDate,
+          endDate: _endDate,
+          clearEndDate: _endDate == null,
         );
         await CampaignService.instance.update(updated);
         if (context.mounted) Navigator.pop(context, updated);
       } else {
         final created = await CampaignService.instance.create(
           name: name,
+          description: description,
           market: _marketId,
           budget: budget,
+          status: _status,
           startDate: _startDate,
+          endDate: _endDate,
         );
         if (context.mounted) Navigator.pop(context, created);
       }
@@ -975,5 +1273,49 @@ class _CampaignEditorDialogState extends State<_CampaignEditorDialog> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+}
+
+// Helper for date picker buttons in the editor
+class _DateButton extends StatelessWidget {
+  final String label;
+  final DateTime? date;
+  final String? hint;
+  final VoidCallback onPick;
+  final VoidCallback? onClear;
+  const _DateButton({required this.label, this.date, this.hint, required this.onPick, this.onClear});
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant)),
+        const SizedBox(height: 4),
+        OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size(0, 42),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+          ),
+          onPressed: onPick,
+          icon: const Icon(Icons.calendar_today_rounded, size: 16),
+          label: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  date != null ? _fmtDate(date!) : (hint ?? '—'),
+                  style: TextStyle(color: date != null ? null : cs.onSurfaceVariant),
+                ),
+              ),
+              if (onClear != null)
+                GestureDetector(
+                  onTap: onClear,
+                  child: Icon(Icons.close_rounded, size: 14, color: cs.onSurfaceVariant),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }

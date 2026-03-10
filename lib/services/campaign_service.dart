@@ -46,17 +46,23 @@ class CampaignService {
 
   Future<CampaignModel> create({
     required String name,
+    String description = '',
     required String market,
     required double budget,
+    String status = 'active',
     required DateTime startDate,
+    DateTime? endDate,
   }) async {
     final now = DateTime.now();
     final c = CampaignModel(
       id: const Uuid().v4(),
       name: name,
+      description: description,
       market: market,
       budget: budget,
+      status: status,
       startDate: startDate,
+      endDate: endDate,
       createdAt: now,
     );
 
