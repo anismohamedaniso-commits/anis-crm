@@ -107,26 +107,32 @@ class CrmDatabase:
         """Discover the real columns of a Supabase table (cached per table)."""
         if table not in self._actual_cols:
             try:
-                # Insert an empty probe row that will fail but the error
-                # tells us nothing useful.  Instead, do a cheap SELECT and
-                # inspect the returned dict keys.
                 row = self._sb.table(table).select('*').limit(1).execute()
                 if row.data:
                     self._actual_cols[table] = set(row.data[0].keys())
+                    logging.info(f'Auto-detected {table} columns: {sorted(self._actual_cols[table])}')
                 else:
-                    # Table is empty — try inserting a probe row to detect
-                    # columns from the error, or fall back to _TABLE_COLS.
-                    self._actual_cols[table] = self._TABLE_COLS.get(table, set())
+                    # Table is empty — probe by inserting a minimal row and
+                    # reading back the columns, then delete it.
+                    try:
+                        probe = self._sb.table(table).insert({'id': '__col_probe__'}).execute()
+                        if probe.data:
+                            self._actual_cols[table] = set(probe.data[0].keys())
+                            logging.info(f'Probed {table} columns: {sorted(self._actual_cols[table])}')
+                        self._sb.table(table).delete().eq('id', '__col_probe__').execute()
+                    except Exception:
+                        # Probe failed — use None so _sb_insert uses retry strategy
+                        self._actual_cols[table] = None
             except Exception:
-                self._actual_cols[table] = self._TABLE_COLS.get(table, set())
+                self._actual_cols[table] = None
         return self._actual_cols[table]
 
     def _sb_filter_cols(self, table: str, row: dict) -> dict:
         """Strip columns that don't actually exist in the Supabase table."""
-        # Use runtime-detected columns first, fall back to static registry
         actual = self._sb_actual_cols(table)
         if actual:
             return {k: v for k, v in row.items() if k in actual}
+        # Fallback to static registry when auto-detect unavailable
         known = self._TABLE_COLS.get(table)
         if not known:
             return row
@@ -141,7 +147,6 @@ class CrmDatabase:
             for k, v in filters.items():
                 q = q.eq(k, v)
         if order_col:
-            # Only order by columns that actually exist
             actual = self._sb_actual_cols(table)
             if not actual or order_col in actual:
                 q = q.order(order_col, desc=not ascending)
@@ -151,14 +156,47 @@ class CrmDatabase:
 
     def _sb_insert(self, table: str, row: dict) -> dict:
         safe_row = self._sb_filter_cols(table, row)
-        result = self._sb.table(table).insert(safe_row).execute().data[0]
-        # Invalidate column cache so new columns are picked up after migrations
-        self._actual_cols.pop(table, None)
+        try:
+            result = self._sb.table(table).insert(safe_row).execute().data[0]
+        except Exception as e:
+            err_msg = str(e)
+            # Handle unknown column errors by stripping the offending column and retrying
+            if 'PGRST204' in err_msg or "could not find" in err_msg.lower():
+                # Parse column name from error like "Could not find the 'description' column"
+                import re
+                match = re.search(r"'(\w+)'\s+column", err_msg)
+                if match:
+                    bad_col = match.group(1)
+                    logging.warning(f'Column {bad_col!r} not in {table} — stripping and retrying')
+                    safe_row.pop(bad_col, None)
+                    # Invalidate cache so next call re-probes
+                    self._actual_cols.pop(table, None)
+                    return self._sb_insert(table, safe_row)
+            raise
+        # Cache the actual columns from the result
+        if result:
+            self._actual_cols[table] = set(result.keys())
         return result
 
     def _sb_update(self, table: str, row_id: str, fields: dict) -> dict | None:
         safe_fields = self._sb_filter_cols(table, fields)
-        res = self._sb.table(table).update(safe_fields).eq('id', row_id).execute()
+        try:
+            res = self._sb.table(table).update(safe_fields).eq('id', row_id).execute()
+        except Exception as e:
+            err_msg = str(e)
+            if 'PGRST204' in err_msg or "could not find" in err_msg.lower():
+                import re
+                match = re.search(r"'(\w+)'\s+column", err_msg)
+                if match:
+                    bad_col = match.group(1)
+                    logging.warning(f'Column {bad_col!r} not in {table} — stripping and retrying update')
+                    safe_fields.pop(bad_col, None)
+                    self._actual_cols.pop(table, None)
+                    res = self._sb.table(table).update(safe_fields).eq('id', row_id).execute()
+                else:
+                    raise
+            else:
+                raise
         return res.data[0] if res.data else None
 
     def _sb_delete(self, table: str, row_id: str) -> bool:
