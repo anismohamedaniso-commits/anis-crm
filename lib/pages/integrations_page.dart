@@ -7,7 +7,7 @@ import 'package:anis_crm/state/app_state.dart';
 import 'package:anis_crm/services/integration_service.dart';
 
 // =============================================================================
-// INTEGRATIONS PAGE — Facebook Lead Ads & WhatsApp Cloud API
+// INTEGRATIONS PAGE — Facebook Lead Ads, WhatsApp Cloud API & Zapier
 // =============================================================================
 
 class IntegrationsPage extends StatefulWidget {
@@ -70,6 +70,12 @@ class _IntegrationsPageState extends State<IntegrationsPage> {
               onSaved: _loadConfig,
             ),
             const SizedBox(height: AppSpacing.md),
+            // ZAPIER
+            _ZapierSection(
+              config: _config?['zapier'] as Map<String, dynamic>? ?? {},
+              onSaved: _loadConfig,
+            ),
+            const SizedBox(height: AppSpacing.md),
             // SETUP GUIDE
             const _SetupGuide(),
           ],
@@ -101,6 +107,7 @@ class _PageHeader extends StatelessWidget {
             colors: [
               const Color(0xFF1877F2),
               const Color(0xFF25D366),
+              const Color(0xFFFF4A00),
             ],
           ),
           borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -116,7 +123,7 @@ class _PageHeader extends StatelessWidget {
                 fontWeight: FontWeight.w700,
                 color: cs.onSurface)),
         const SizedBox(height: 2),
-        Text('Connect Facebook & WhatsApp to auto-capture leads',
+        Text('Connect Facebook, WhatsApp & Zapier to auto-capture leads',
             style:
                 tt.bodySmall?.withColor(cs.onSurfaceVariant)),
       ])),
@@ -163,6 +170,17 @@ class _StatusOverview extends StatelessWidget {
               label: 'WhatsApp Cloud API',
               connected: status.whatsappConnected,
               leadsCount: status.whatsappLeadsCount,
+              isDark: isDark,
+              cs: cs,
+            )),
+            const SizedBox(width: 12),
+            Expanded(
+                child: _StatusCard(
+              icon: Icons.bolt_rounded,
+              iconColor: const Color(0xFFFF4A00),
+              label: 'Zapier',
+              connected: status.zapierConnected,
+              leadsCount: status.zapierLeadsCount,
               isDark: isDark,
               cs: cs,
             )),
@@ -802,6 +820,241 @@ class _WhatsAppSectionState extends State<_WhatsAppSection> {
 }
 
 // =============================================================================
+// ZAPIER SECTION
+// =============================================================================
+
+class _ZapierSection extends StatefulWidget {
+  const _ZapierSection({required this.config, required this.onSaved});
+  final Map<String, dynamic> config;
+  final VoidCallback onSaved;
+
+  @override
+  State<_ZapierSection> createState() => _ZapierSectionState();
+}
+
+class _ZapierSectionState extends State<_ZapierSection> {
+  late TextEditingController _apiKeyCtrl;
+  bool _saving = false;
+  bool _expanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _apiKeyCtrl = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _apiKeyCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    final ok = await IntegrationService.instance.saveZapierConfig(
+      apiKey: _apiKeyCtrl.text.trim(),
+    );
+    if (mounted) {
+      setState(() => _saving = false);
+      if (ok) {
+        _apiKeyCtrl.clear();
+        widget.onSaved();
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Row(children: [
+            Icon(Icons.check_circle_rounded, size: 18, color: Colors.white),
+            SizedBox(width: 10),
+            Text('Zapier config saved'),
+          ]),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.success,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.sm)),
+          margin: const EdgeInsets.all(AppSpacing.md),
+          duration: const Duration(seconds: 2),
+        ));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Row(children: [
+            Icon(Icons.error_outline, size: 18, color: Colors.white),
+            SizedBox(width: 10),
+            Text('Failed to save — is the server running?'),
+          ]),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.danger,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.sm)),
+          margin: const EdgeInsets.all(AppSpacing.md),
+        ));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tt = Theme.of(context).textTheme;
+    final configured = widget.config['configured'] == true;
+    final webhookUrl = widget.config['webhook_url'] as String? ?? '/api/webhooks/zapier';
+    final maskedKey = widget.config['api_key'] as String? ?? '';
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(
+            color: cs.outline.withValues(alpha: isDark ? 0.15 : 0.08)),
+        boxShadow: [
+          BoxShadow(
+              color: cs.shadow.withValues(alpha: isDark ? 0.08 : 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2))
+        ],
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // Header
+        InkWell(
+          onTap: () => setState(() => _expanded = !_expanded),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
+            child: Row(children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF4A00).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppRadius.xs),
+                ),
+                child: const Icon(Icons.bolt_rounded,
+                    size: 18, color: Color(0xFFFF4A00)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                    Text('Zapier',
+                        style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w700,
+                            color: cs.onSurface)),
+                    const SizedBox(height: 2),
+                    Text(
+                        'Auto-capture leads from 5000+ apps via Zapier',
+                        style: tt.labelSmall?.copyWith(fontSize: 11.5, color: cs.onSurfaceVariant)),
+                  ])),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: configured
+                      ? AppColors.success.withValues(alpha: 0.1)
+                      : AppColors.warning.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                ),
+                child: Text(
+                  configured ? 'Connected' : 'Not configured',
+                  style: tt.labelSmall?.semiBold.withColor(configured ? AppColors.success : AppColors.warning),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                _expanded
+                    ? Icons.keyboard_arrow_up_rounded
+                    : Icons.keyboard_arrow_down_rounded,
+                size: 20,
+                color: cs.onSurfaceVariant,
+              ),
+            ]),
+          ),
+        ),
+
+        if (_expanded) ...[
+          Divider(
+              height: 1,
+              color: cs.outline.withValues(alpha: isDark ? 0.1 : 0.06)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Webhook URL
+                _InfoRow(
+                  label: 'Webhook URL',
+                  value: webhookUrl,
+                  helperText:
+                      'Use this as the URL in your Zapier "Webhooks by Zapier" action',
+                  copyable: true,
+                ),
+                const SizedBox(height: 14),
+
+                // API Key
+                Text('API Key',
+                    style: tt.labelMedium?.semiBold.withColor(cs.onSurface)),
+                const SizedBox(height: 4),
+                if (maskedKey.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text('Current: $maskedKey',
+                        style: GoogleFonts.jetBrainsMono(
+                            fontSize: 11, color: cs.onSurfaceVariant)),
+                  ),
+                TextField(
+                  controller: _apiKeyCtrl,
+                  style: GoogleFonts.jetBrainsMono(fontSize: 13),
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    hintText: 'Enter an API key for Zapier authentication',
+                    hintStyle: tt.labelMedium?.copyWith(fontSize: 12.5, color: cs.onSurfaceVariant.withValues(alpha: 0.5)),
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.sm)),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Set any secret string as API key. Zapier will send it in the X-API-Key header to authenticate requests.',
+                  style: tt.labelSmall?.withColor(cs.onSurfaceVariant).copyWith(height: 1.4),
+                ),
+                const SizedBox(height: 16),
+
+                // Save button
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: FilledButton.icon(
+                    onPressed: _saving ? null : _save,
+                    icon: _saving
+                        ? SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: cs.onPrimary))
+                        : const Icon(Icons.save_rounded, size: 16),
+                    label: Text(_saving ? 'Saving...' : 'Save Zapier Config',
+                        style: tt.labelMedium?.copyWith(fontSize: 12.5)),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFFFF4A00),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.sm)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ]),
+    );
+  }
+}
+
+// =============================================================================
 // SETUP GUIDE
 // =============================================================================
 
@@ -878,6 +1131,19 @@ class _SetupGuide extends StatelessWidget {
           _StepTile(number: '4', text: 'Subscribe to the "messages" webhook field'),
           _StepTile(number: '5', text: 'Copy your Phone Number ID from WhatsApp → API Setup'),
           _StepTile(number: '6', text: 'Generate a permanent System User token and paste above'),
+
+          const SizedBox(height: 20),
+
+          // Zapier steps
+          Text('Zapier',
+              style: tt.bodySmall?.bold.withColor(const Color(0xFFFF4A00))),
+          const SizedBox(height: 8),
+          _StepTile(number: '1', text: 'Go to zapier.com and create a new Zap'),
+          _StepTile(number: '2', text: 'Choose your trigger app (Google Sheets, Typeform, HubSpot, etc.)'),
+          _StepTile(number: '3', text: 'For the action, choose "Webhooks by Zapier" → "POST"'),
+          _StepTile(number: '4', text: 'Set URL to: https://<your-domain>/api/webhooks/zapier'),
+          _StepTile(number: '5', text: 'Add header: X-API-Key with the API key you saved above'),
+          _StepTile(number: '6', text: 'Map fields: name, email, phone, campaign, source, company'),
 
           const SizedBox(height: 16),
 

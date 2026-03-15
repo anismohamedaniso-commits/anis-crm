@@ -89,6 +89,7 @@ void main() {
       expect(LeadSourceX.fromName('linkedin'), LeadSource.linkedin);
       expect(LeadSourceX.fromName('tiktok'), LeadSource.tiktok);
       expect(LeadSourceX.fromName('imported'), LeadSource.imported);
+      expect(LeadSourceX.fromName('zapier'), LeadSource.zapier);
     });
 
     test('fromName handles alternate web names', () {

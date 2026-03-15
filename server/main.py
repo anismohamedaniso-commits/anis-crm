@@ -132,6 +132,9 @@ WA_VERIFY_TOKEN = os.environ.get('WA_VERIFY_TOKEN', 'anis_crm_wa_verify')
 WA_PHONE_NUMBER_ID = os.environ.get('WA_PHONE_NUMBER_ID', '')
 WA_ACCESS_TOKEN = os.environ.get('WA_ACCESS_TOKEN', '')
 
+# ── Zapier integration config ──
+ZAPIER_API_KEY = os.environ.get('ZAPIER_API_KEY', '')
+
 # Allowed CORS origins — set CORS_ORIGINS env var in production
 # (comma-separated list, e.g. "https://app.example.com,https://admin.example.com")
 _cors_origins_raw = os.environ.get('CORS_ORIGINS', '')
@@ -1414,6 +1417,12 @@ async def list_webhooks(req: Request):
             'url': '/api/webhooks/whatsapp',
             'enabled': bool(os.environ.get('WA_TOKEN')),
         },
+        {
+            'id': 'zapier',
+            'name': 'Zapier',
+            'url': '/api/webhooks/zapier',
+            'enabled': bool(ZAPIER_API_KEY),
+        },
     ]
     return JSONResponse(content={'webhooks': webhooks})
 
@@ -1737,7 +1746,76 @@ async def whatsapp_send_message(req: Request):
 
 
 # =============================================================================
-# INTEGRATION CONFIG – runtime configuration for FB / WA tokens
+# ZAPIER WEBHOOK
+# =============================================================================
+# Zapier sends lead data to this endpoint via a simple POST with API key auth.
+# In Zapier, create a "Webhooks by Zapier" action pointing to:
+#   POST https://<your-domain>/api/webhooks/zapier
+#   Header: X-API-Key: <your-zapier-api-key>
+# =============================================================================
+
+@app.post('/api/webhooks/zapier')
+async def zapier_webhook_receive(req: Request):
+    """
+    Receive leads from Zapier.
+    Accepts a JSON payload with lead fields.  Supports single lead
+    (object) or batch (array of objects).
+    Authentication via X-API-Key header.
+    """
+    # --- Authenticate via API key ---
+    api_key = req.headers.get('x-api-key', '')
+    if not ZAPIER_API_KEY or not api_key:
+        raise HTTPException(status_code=401, detail='Missing API key')
+    if not hmac.compare_digest(api_key, ZAPIER_API_KEY):
+        raise HTTPException(status_code=403, detail='Invalid API key')
+
+    payload = await req.json()
+    logging.info(f"Zapier webhook received: {json.dumps(payload, indent=2)}")
+
+    # Normalise: accept a single object or a list of objects
+    items = payload if isinstance(payload, list) else [payload]
+    leads_created = []
+
+    for item in items:
+        name = (item.get('name') or item.get('full_name') or '').strip()
+        if not name:
+            first = (item.get('first_name') or '').strip()
+            last = (item.get('last_name') or '').strip()
+            name = f"{first} {last}".strip()
+        if not name:
+            name = 'Zapier Lead'
+
+        lead = db.create_lead({
+            'name': name,
+            'email': (item.get('email') or '').strip(),
+            'phone': (item.get('phone') or item.get('phone_number') or '').strip(),
+            'status': item.get('status', 'fresh'),
+            'source': item.get('source', 'zapier'),
+            'campaign': (item.get('campaign') or '').strip() or None,
+            'company': (item.get('company') or '').strip() or None,
+            'country': (item.get('country') or 'egypt').strip(),
+            'deal_value': float(item['deal_value']) if item.get('deal_value') else 0,
+            'notes': (item.get('notes') or '').strip() or None,
+            'last_contacted_at': None,
+            'next_followup_at': None,
+            'meta': {
+                'platform': 'zapier',
+                'raw_payload': item,
+            },
+        })
+        leads_created.append(lead)
+        logging.info(f"Zapier lead created: {name} ({lead['id']})")
+
+    _audit_log({'action': 'zapier_webhook', 'leads_created': len(leads_created)})
+    return JSONResponse(content={
+        "ok": True,
+        "leads_created": len(leads_created),
+        "lead_ids": [l['id'] for l in leads_created],
+    })
+
+
+# =============================================================================
+# INTEGRATION CONFIG – runtime configuration for FB / WA / Zapier tokens
 # =============================================================================
 
 INTEGRATION_CONFIG_FILE = DATA_DIR / 'integration_config.json'
@@ -1757,7 +1835,7 @@ def _save_integration_config(config: dict):
 
 def _apply_integration_config():
     """Load saved integration config and apply to module-level variables."""
-    global FB_VERIFY_TOKEN, FB_PAGE_ACCESS_TOKEN, WA_VERIFY_TOKEN, WA_PHONE_NUMBER_ID, WA_ACCESS_TOKEN
+    global FB_VERIFY_TOKEN, FB_PAGE_ACCESS_TOKEN, WA_VERIFY_TOKEN, WA_PHONE_NUMBER_ID, WA_ACCESS_TOKEN, ZAPIER_API_KEY
     config = _load_integration_config()
     if config.get('fb_verify_token'):
         FB_VERIFY_TOKEN = config['fb_verify_token']
@@ -1769,6 +1847,8 @@ def _apply_integration_config():
         WA_PHONE_NUMBER_ID = config['wa_phone_number_id']
     if config.get('wa_access_token'):
         WA_ACCESS_TOKEN = config['wa_access_token']
+    if config.get('zapier_api_key'):
+        ZAPIER_API_KEY = config['zapier_api_key']
 
 # Apply on startup
 _apply_integration_config()
@@ -1798,6 +1878,11 @@ async def get_integration_config(req: Request):
             'access_token': _mask(WA_ACCESS_TOKEN),
             'webhook_url': '/api/webhooks/whatsapp',
         },
+        'zapier': {
+            'configured': bool(ZAPIER_API_KEY),
+            'api_key': _mask(ZAPIER_API_KEY),
+            'webhook_url': '/api/webhooks/zapier',
+        },
     })
 
 
@@ -1825,6 +1910,11 @@ async def set_integration_config(req: Request):
     if wa.get('access_token'):
         config['wa_access_token'] = wa['access_token']
 
+    # Zapier config
+    zap = payload.get('zapier', {})
+    if zap.get('api_key'):
+        config['zapier_api_key'] = zap['api_key']
+
     _save_integration_config(config)
     _apply_integration_config()
 
@@ -1841,6 +1931,7 @@ async def integration_status(req: Request):
     leads = db.get_leads()
     fb_leads = sum(1 for l in leads if (l.get('source') or '') == 'facebook')
     wa_leads = sum(1 for l in leads if (l.get('source') or '') == 'whatsapp')
+    zap_leads = sum(1 for l in leads if (l.get('source') or '') == 'zapier')
 
     return JSONResponse(content={
         'facebook': {
@@ -1850,6 +1941,10 @@ async def integration_status(req: Request):
         'whatsapp': {
             'connected': bool(WA_ACCESS_TOKEN and WA_PHONE_NUMBER_ID),
             'leads_count': wa_leads,
+        },
+        'zapier': {
+            'connected': bool(ZAPIER_API_KEY),
+            'leads_count': zap_leads,
         },
     })
 

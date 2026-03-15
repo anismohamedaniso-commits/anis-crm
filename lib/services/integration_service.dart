@@ -28,11 +28,14 @@ class IntegrationService {
         final data = jsonDecode(resp.body) as Map<String, dynamic>;
         final fb = data['facebook'] as Map<String, dynamic>? ?? {};
         final wa = data['whatsapp'] as Map<String, dynamic>? ?? {};
+        final zap = data['zapier'] as Map<String, dynamic>? ?? {};
         status.value = IntegrationStatus(
           facebookConnected: fb['connected'] == true,
           facebookLeadsCount: (fb['leads_count'] as int?) ?? 0,
           whatsappConnected: wa['connected'] == true,
           whatsappLeadsCount: (wa['leads_count'] as int?) ?? 0,
+          zapierConnected: zap['connected'] == true,
+          zapierLeadsCount: (zap['leads_count'] as int?) ?? 0,
         );
       }
     } catch (e) {
@@ -117,6 +120,29 @@ class IntegrationService {
     return false;
   }
 
+  /// Save Zapier integration config (API key).
+  Future<bool> saveZapierConfig({String? apiKey}) async {
+    try {
+      final body = <String, dynamic>{
+        'zapier': <String, dynamic>{
+          if (apiKey != null && apiKey.isNotEmpty) 'api_key': apiKey,
+        },
+      };
+      final resp = await http.post(
+        Uri.parse('$_baseUrl/api/integrations/config'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      );
+      if (resp.statusCode == 200) {
+        await refreshStatus();
+        return true;
+      }
+    } catch (e) {
+      debugPrint('IntegrationService.saveZapierConfig error: $e');
+    }
+    return false;
+  }
+
   /// Send a WhatsApp message via the backend.
   Future<bool> sendWhatsAppMessage({
     required String to,
@@ -159,11 +185,15 @@ class IntegrationStatus {
   final int facebookLeadsCount;
   final bool whatsappConnected;
   final int whatsappLeadsCount;
+  final bool zapierConnected;
+  final int zapierLeadsCount;
 
   const IntegrationStatus({
     this.facebookConnected = false,
     this.facebookLeadsCount = 0,
     this.whatsappConnected = false,
     this.whatsappLeadsCount = 0,
+    this.zapierConnected = false,
+    this.zapierLeadsCount = 0,
   });
 }

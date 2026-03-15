@@ -120,6 +120,7 @@ enum LeadSource {
   linkedin,
   tiktok,
   imported,
+  zapier,
 }
 
 extension LeadStatusX on LeadStatus {
@@ -168,6 +169,8 @@ extension LeadSourceX on LeadSource {
         return LeadSource.tiktok;
       case 'imported':
         return LeadSource.imported;
+      case 'zapier':
+        return LeadSource.zapier;
       case 'whatsapp':
       default:
         return LeadSource.whatsapp;
