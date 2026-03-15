@@ -438,6 +438,9 @@ class _SourceIcon extends StatelessWidget {
       case LeadSource.imported:
         icon = Icons.archive_outlined;
         break;
+      case LeadSource.zapier:
+        icon = Icons.bolt_outlined;
+        break;
     }
     return Icon(icon, size: 18, color: color);
   }

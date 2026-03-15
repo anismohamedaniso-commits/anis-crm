@@ -119,6 +119,7 @@ String _sourceLabel(LeadSource s) {
     case LeadSource.phone: return 'Phone';
     case LeadSource.manual: return 'Manual';
     case LeadSource.imported: return 'Imported';
+    case LeadSource.zapier: return 'Zapier';
   }
 }
 

@@ -1217,6 +1217,7 @@ String _sourceLabel(LeadSource s) {
     case LeadSource.phone: return 'Phone';
     case LeadSource.manual: return 'Manual';
     case LeadSource.imported: return 'Imported';
+    case LeadSource.zapier: return 'Zapier';
   }
 }
 
@@ -1244,5 +1245,6 @@ Color _sourceColor(LeadSource s) {
     case LeadSource.phone: return const Color(0xFF34A853);
     case LeadSource.manual: return AppColors.warning;
     case LeadSource.imported: return const Color(0xFF9E9E9E);
+    case LeadSource.zapier: return const Color(0xFFFF4A00);
   }
 }
