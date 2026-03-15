@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'package:anis_crm/models/lead.dart';
 import 'package:anis_crm/services/api_client.dart';
+import 'package:anis_crm/services/auth_service.dart';
 
 /// Manages Lead CRUD with server-first persistence and local fallback.
 class LeadService {
@@ -34,9 +35,12 @@ class LeadService {
   int get totalLeads => _totalLeads;
 
   Future<void> load() async {
-    if (_loaded) return;
+    // Always hit the server when authenticated — never serve stale cache.
+    // Only skip if already loaded AND there is no auth token (unauthenticated / offline).
+    final hasToken = AuthService.instance.accessToken != null;
+    if (_loaded && !hasToken) return;
     try {
-      // Try loading from server first
+      // Server-first: fetch all leads directly from the API
       final serverLeads = await _api.getLeads();
       if (serverLeads != null) {
         final parsed = <LeadModel>[];
@@ -48,15 +52,21 @@ class LeadService {
           }
         }
         leads.value = parsed;
+        _hasMore = false; // all leads loaded at once
+        _totalLeads = parsed.length;
         debugPrint('LeadService: loaded ${parsed.length} leads from server');
         _loaded = true;
         return;
       }
     } catch (e) {
-      debugPrint('LeadService: server fetch failed, falling back to local ($e)');
+      debugPrint('LeadService: server fetch failed ($e)');
     }
 
-    // Fallback: SharedPreferences (works on all platforms incl. web via localStorage)
+    // Only fall back to local cache if we have no in-memory data yet
+    if (leads.value.isNotEmpty) {
+      _loaded = true;
+      return;
+    }
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_prefsKey);
@@ -72,7 +82,7 @@ class LeadService {
         }
         leads.value = parsed;
       } else {
-        leads.value = []; // Empty state — no fake sample data in production
+        leads.value = [];
       }
     } catch (e) {
       debugPrint('LeadService.load: local storage failed ($e)');

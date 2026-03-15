@@ -63,11 +63,7 @@ Future<void> main() async {
     await SupabaseConfig.initialize();
     debugPrint('Supabase initialized');
 
-    // Load local data stores
-    debugPrint('Loading LeadService...');
-    await LeadService.instance.load();
-    debugPrint('LeadService loaded');
-
+    // Load non-auth services before login
     debugPrint('Loading ActivityService...');
     await ActivityService.instance.load();
     debugPrint('ActivityService loaded');
@@ -101,16 +97,19 @@ Future<void> main() async {
     await AuthService.instance.tryAutoLogin();
     debugPrint('Auth check complete: logged in = ${AuthService.instance.isLoggedIn}');
 
-    // Start notification polling if logged in
+    // Start notification polling if logged in, and load data
     if (AuthService.instance.isLoggedIn) {
       NotificationService.instance.startPolling();
+      debugPrint('Loading LeadService (authenticated)...');
+      await LeadService.instance.load();
+      debugPrint('LeadService loaded: ${LeadService.instance.leads.value.length} leads');
     }
 
     // Listen to auth changes to refresh router and reload data
     AuthService.instance.addListener(() {
       AppRouter.router.refresh();
       if (AuthService.instance.isLoggedIn) {
-        // Reset services to force fresh data for new user session
+        // Reset services to force fresh server data for new user session
         LeadService.instance.reset();
         KpiService.instance.reset();
         LeadService.instance.load();
