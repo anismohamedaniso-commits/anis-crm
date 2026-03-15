@@ -942,7 +942,7 @@ class _ZapierSectionState extends State<_ZapierSection> {
                             color: cs.onSurface)),
                     const SizedBox(height: 2),
                     Text(
-                        'Auto-capture leads from 5000+ apps via Zapier',
+                        'Auto-capture leads & sync campaigns from 5000+ apps via Zapier',
                         style: tt.labelSmall?.copyWith(fontSize: 11.5, color: cs.onSurfaceVariant)),
                   ])),
               Container(
@@ -980,12 +980,18 @@ class _ZapierSectionState extends State<_ZapierSection> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Webhook URL
+                // Webhook URLs
                 _InfoRow(
-                  label: 'Webhook URL',
-                  value: webhookUrl,
-                  helperText:
-                      'Use this as the URL in your Zapier "Webhooks by Zapier" action',
+                  label: 'Leads Webhook URL',
+                  value: 'https://anis-crm-api-production.up.railway.app/api/webhooks/zapier',
+                  helperText: 'Use for lead capture — POST lead data from any Zapier trigger',
+                  copyable: true,
+                ),
+                const SizedBox(height: 10),
+                _InfoRow(
+                  label: 'Campaigns Webhook URL',
+                  value: 'https://anis-crm-api-production.up.railway.app/api/webhooks/zapier/campaign',
+                  helperText: 'Use to create/update campaigns — POST campaign data from Google Sheets, Notion, etc.',
                   copyable: true,
                 ),
                 const SizedBox(height: 14),
@@ -1135,15 +1141,27 @@ class _SetupGuide extends StatelessWidget {
           const SizedBox(height: 20),
 
           // Zapier steps
-          Text('Zapier',
+          Text('Zapier — Lead Capture',
               style: tt.bodySmall?.bold.withColor(const Color(0xFFFF4A00))),
           const SizedBox(height: 8),
           _StepTile(number: '1', text: 'Go to zapier.com and create a new Zap'),
           _StepTile(number: '2', text: 'Choose your trigger app (Google Sheets, Typeform, HubSpot, etc.)'),
           _StepTile(number: '3', text: 'For the action, choose "Webhooks by Zapier" → "POST"'),
-          _StepTile(number: '4', text: 'Set URL to: https://<your-domain>/api/webhooks/zapier'),
+          _StepTile(number: '4', text: 'Set URL to: https://anis-crm-api-production.up.railway.app/api/webhooks/zapier'),
           _StepTile(number: '5', text: 'Add header: X-API-Key with the API key you saved above'),
           _StepTile(number: '6', text: 'Map fields: name, email, phone, campaign, source, company'),
+
+          const SizedBox(height: 16),
+
+          Text('Zapier — Campaign Automation',
+              style: tt.bodySmall?.bold.withColor(const Color(0xFFFF4A00))),
+          const SizedBox(height: 8),
+          _StepTile(number: '1', text: 'Create a new Zap with your campaign data source (Google Sheets, Notion, Airtable, etc.)'),
+          _StepTile(number: '2', text: 'For the action, choose "Webhooks by Zapier" → "POST"'),
+          _StepTile(number: '3', text: 'Set URL to: https://anis-crm-api-production.up.railway.app/api/webhooks/zapier/campaign'),
+          _StepTile(number: '4', text: 'Add header: X-API-Key with the same API key'),
+          _StepTile(number: '5', text: 'Map fields: name (required), description, market, budget, status, start_date, end_date'),
+          _StepTile(number: '6', text: 'To update an existing campaign, include its "id" field in the payload'),
 
           const SizedBox(height: 16),
 
