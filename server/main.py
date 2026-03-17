@@ -1419,14 +1419,8 @@ async def list_webhooks(req: Request):
         },
         {
             'id': 'zapier',
-            'name': 'Zapier (Leads)',
+            'name': 'Zapier',
             'url': '/api/webhooks/zapier',
-            'enabled': bool(ZAPIER_API_KEY),
-        },
-        {
-            'id': 'zapier_campaign',
-            'name': 'Zapier (Campaigns)',
-            'url': '/api/webhooks/zapier/campaign',
             'enabled': bool(ZAPIER_API_KEY),
         },
     ]
@@ -1821,87 +1815,8 @@ async def zapier_webhook_receive(req: Request):
 
 
 # =============================================================================
-# ZAPIER CAMPAIGN WEBHOOK – create / update campaigns from Zapier
+# INTEGRATION CONFIG – runtime configuration for FB / WA / Zapier tokens
 # =============================================================================
-# In Zapier, add a "Webhooks by Zapier" → POST action:
-#   URL:     https://<your-domain>/api/webhooks/zapier/campaign
-#   Header:  X-API-Key: <ZAPIER_API_KEY>
-#   Body (JSON):
-#     {
-#       "name":        "Spring Sale 2025",
-#       "description": "Facebook + WhatsApp spring promo",
-#       "market":      "egypt",          // egypt | saudi_arabia | all
-#       "budget":      5000,
-#       "status":      "active",         // active | paused | completed
-#       "start_date":  "2025-03-01",
-#       "end_date":    "2025-03-31"      // optional
-#     }
-#
-# To UPDATE an existing campaign, include "id" in the payload.
-# If "id" is provided and found, the campaign is updated; otherwise created.
-
-@app.post('/api/webhooks/zapier/campaign')
-async def zapier_campaign_webhook(req: Request):
-    """
-    Create or update campaigns via Zapier.
-    Accepts a single campaign object or a list.
-    Authentication via X-API-Key header (same key as the leads webhook).
-    """
-    api_key = req.headers.get('x-api-key', '')
-    if not ZAPIER_API_KEY or not api_key:
-        raise HTTPException(status_code=401, detail='Missing API key')
-    if not hmac.compare_digest(api_key, ZAPIER_API_KEY):
-        raise HTTPException(status_code=403, detail='Invalid API key')
-
-    payload = await req.json()
-    logging.info(f"Zapier campaign webhook received: {json.dumps(payload, indent=2)}")
-
-    items = payload if isinstance(payload, list) else [payload]
-    results = []
-
-    for item in items:
-        name = (item.get('name') or '').strip()
-        if not name:
-            raise HTTPException(status_code=422, detail="'name' field is required for each campaign")
-
-        campaign_id = (item.get('id') or '').strip() or None
-
-        data = {
-            'name': name,
-            'description': (item.get('description') or '').strip(),
-            'market': (item.get('market') or 'egypt').strip(),
-            'budget': float(item['budget']) if item.get('budget') is not None else 0.0,
-            'status': (item.get('status') or 'active').strip(),
-            'meta': {'platform': 'zapier', 'raw_payload': item},
-        }
-        if item.get('start_date'):
-            data['start_date'] = item['start_date']
-        if item.get('end_date'):
-            data['end_date'] = item['end_date']
-
-        if campaign_id:
-            # Update existing campaign if it exists, otherwise create
-            existing = db.get_campaign(campaign_id)
-            if existing:
-                campaign = db.update_campaign(campaign_id, data)
-                action = 'updated'
-            else:
-                data['id'] = campaign_id
-                campaign = db.create_campaign(data)
-                action = 'created'
-        else:
-            campaign = db.create_campaign(data)
-            action = 'created'
-
-        results.append({'id': campaign['id'], 'name': campaign['name'], 'action': action})
-        logging.info(f"Zapier campaign {action}: {campaign['name']} ({campaign['id']})")
-
-    _audit_log({'action': 'zapier_campaign_webhook', 'campaigns_processed': len(results)})
-    return JSONResponse(content={
-        'ok': True,
-        'campaigns_processed': len(results),
-        'campaigns': results,
-    })
 
 INTEGRATION_CONFIG_FILE = DATA_DIR / 'integration_config.json'
 
@@ -2018,10 +1933,6 @@ async def integration_status(req: Request):
     wa_leads = sum(1 for l in leads if (l.get('source') or '') == 'whatsapp')
     zap_leads = sum(1 for l in leads if (l.get('source') or '') == 'zapier')
 
-    # Count campaigns created via Zapier (those with zapier meta or from webhook audit)
-    all_campaigns = db.get_campaigns()
-    zap_campaigns = sum(1 for c in all_campaigns if (c.get('meta') or {}).get('platform') == 'zapier')
-
     return JSONResponse(content={
         'facebook': {
             'connected': bool(FB_PAGE_ACCESS_TOKEN),
@@ -2034,7 +1945,6 @@ async def integration_status(req: Request):
         'zapier': {
             'connected': bool(ZAPIER_API_KEY),
             'leads_count': zap_leads,
-            'campaigns_count': zap_campaigns,
         },
     })
 
