@@ -1163,6 +1163,46 @@ class _SetupGuide extends StatelessWidget {
           _StepTile(number: '5', text: 'Map fields: name (required), description, market, budget, status, start_date, end_date'),
           _StepTile(number: '6', text: 'To update an existing campaign, include its "id" field in the payload'),
 
+          const SizedBox(height: 20),
+
+          // ManyChat via Zapier steps
+          Text('ManyChat → Zapier (Interest Tracking)',
+              style: tt.bodySmall?.bold.withColor(const Color(0xFF25D366))),
+          const SizedBox(height: 4),
+          Text('Automatically update lead status in CRM when someone shows interest (or not) on WhatsApp.',
+              style: tt.labelSmall?.copyWith(fontSize: 11, color: cs.onSurfaceVariant, height: 1.4)),
+          const SizedBox(height: 8),
+          _StepTile(number: '1', text: 'In ManyChat, go to Automation → Flows and open your WhatsApp flow'),
+          _StepTile(number: '2', text: 'Add a "Zapier" action step after the button/keyword that captures interest'),
+          _StepTile(number: '3', text: 'In Zapier, use "ManyChat" as the trigger — choose event "Subscriber Opted In" or "Tag Added"'),
+          _StepTile(number: '4', text: 'For the action, choose "Webhooks by Zapier" → "POST"'),
+          _StepTile(number: '5', text: 'Set URL to: https://anis-crm-api-production.up.railway.app/api/webhooks/zapier'),
+          _StepTile(number: '6', text: 'Add header: X-API-Key with the API key you saved above'),
+          _StepTile(number: '7', text: 'Map fields: phone → phone, name → name, and set interest = "interested" OR "not_interested"'),
+          _StepTile(number: '8', text: 'The CRM will find the lead by phone and update their status automatically'),
+
+          const SizedBox(height: 10),
+
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF25D366).withValues(alpha: isDark ? 0.08 : 0.05),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+              border: Border.all(color: const Color(0xFF25D366).withValues(alpha: 0.2)),
+            ),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Icon(Icons.tips_and_updates_outlined, size: 14, color: Color(0xFF25D366)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Interest field values: "interested", "yes", "hot", "warm" → Qualified  |  "not_interested", "no", "stop" → Lost\n'
+                  'Also accepts: flow (ManyChat flow name), message (last message), campaign.',
+                  style: tt.labelSmall?.copyWith(fontSize: 10.5, color: cs.onSurfaceVariant, height: 1.45),
+                ),
+              ),
+            ]),
+          ),
+
           const SizedBox(height: 16),
 
           Container(
