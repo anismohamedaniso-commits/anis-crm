@@ -1760,69 +1760,13 @@ async def whatsapp_send_message(req: Request):
 #   Header: X-API-Key: <your-zapier-api-key>
 # =============================================================================
 
-# ── ManyChat interest → CRM status mapping ───────────────────────────────────
-_INTEREST_STATUS_MAP = {
-    # Positive interest signals
-    'yes': 'qualified',
-    'interested': 'qualified',
-    'interest': 'qualified',
-    'showed_interest': 'qualified',
-    'show_interest': 'qualified',
-    'want_more_info': 'qualified',
-    'confirmed': 'qualified',
-    'hot': 'qualified',
-    'warm': 'contacted',
-    # Negative / not interested
-    'no': 'lost',
-    'not_interested': 'lost',
-    'not interested': 'lost',
-    'unsubscribed': 'lost',
-    'stop': 'lost',
-    'cancel': 'lost',
-    'cold': 'lost',
-}
-
-def _resolve_status(item: dict) -> str:
-    """
-    Determine the CRM status from a Zapier/ManyChat payload.
-    Checks the 'interest', 'interested', and 'status' fields in priority order.
-    """
-    interest = (item.get('interest') or item.get('interested') or '').strip().lower()
-    if interest:
-        return _INTEREST_STATUS_MAP.get(interest, 'fresh')
-    raw_status = (item.get('status') or '').strip().lower()
-    return raw_status if raw_status else 'fresh'
-
-
-def _find_lead_by_phone(phone: str) -> Optional[dict]:
-    """Return the first lead whose normalised phone matches, or None."""
-    if not phone:
-        return None
-    norm = phone.replace('+', '').replace(' ', '').replace('-', '')
-    for lead in db.get_leads():
-        lp = (lead.get('phone') or '').replace('+', '').replace(' ', '').replace('-', '')
-        if lp and lp == norm:
-            return lead
-    return None
-
-
 @app.post('/api/webhooks/zapier')
 async def zapier_webhook_receive(req: Request):
     """
-    Receive leads from Zapier (including ManyChat → Zapier flows).
-
-    Supports upsert by phone: if a lead with the same phone already exists
-    in the CRM, its status (and other provided fields) are UPDATED instead
-    of creating a duplicate.  This makes it the right endpoint for ManyChat
-    "interested / not interested" automations.
-
-    Interest mapping (via the optional 'interest' field):
-      interested / yes / hot  → status = qualified
-      not_interested / no     → status = lost
-      (omit 'interest' and set 'status' directly for full control)
-
-    Accepts a single object or a list of objects.
-    Auth: X-API-Key header.
+    Receive leads from Zapier.
+    Accepts a JSON payload with lead fields.  Supports single lead
+    (object) or batch (array of objects).
+    Authentication via X-API-Key header.
     """
     # --- Authenticate via API key ---
     api_key = req.headers.get('x-api-key', '')
@@ -1836,7 +1780,7 @@ async def zapier_webhook_receive(req: Request):
 
     # Normalise: accept a single object or a list of objects
     items = payload if isinstance(payload, list) else [payload]
-    results = []
+    leads_created = []
 
     for item in items:
         name = (item.get('name') or item.get('full_name') or '').strip()
@@ -1847,74 +1791,32 @@ async def zapier_webhook_receive(req: Request):
         if not name:
             name = 'Zapier Lead'
 
-        phone = (item.get('phone') or item.get('phone_number') or '').strip()
-        status = _resolve_status(item)
-        source = (item.get('source') or 'zapier').strip()
+        lead = db.create_lead({
+            'name': name,
+            'email': (item.get('email') or '').strip(),
+            'phone': (item.get('phone') or item.get('phone_number') or '').strip(),
+            'status': item.get('status', 'fresh'),
+            'source': item.get('source', 'zapier'),
+            'campaign': (item.get('campaign') or '').strip() or None,
+            'company': (item.get('company') or '').strip() or None,
+            'country': (item.get('country') or 'egypt').strip(),
+            'deal_value': float(item['deal_value']) if item.get('deal_value') else 0,
+            'notes': (item.get('notes') or '').strip() or None,
+            'last_contacted_at': None,
+            'next_followup_at': None,
+            'meta': {
+                'platform': 'zapier',
+                'raw_payload': item,
+            },
+        })
+        leads_created.append(lead)
+        logging.info(f"Zapier lead created: {name} ({lead['id']})")
 
-        # Build note from ManyChat message / interaction context if provided
-        mc_message = (item.get('message') or item.get('last_message') or '').strip()
-        mc_flow = (item.get('flow') or item.get('flow_name') or '').strip()
-        note_parts = []
-        if mc_flow:
-            note_parts.append(f"ManyChat flow: {mc_flow}")
-        if mc_message:
-            note_parts.append(f"Message: {mc_message}")
-        if item.get('interest') or item.get('interested'):
-            interest_val = item.get('interest') or item.get('interested')
-            note_parts.append(f"Interest response: {interest_val}")
-        auto_note = ' | '.join(note_parts) if note_parts else None
-
-        # ── UPSERT: update existing lead if phone matches ──────────────────
-        existing = _find_lead_by_phone(phone) if phone else None
-        if existing:
-            update_data: dict = {
-                'status': status,
-                'last_contacted_at': datetime.utcnow().isoformat() + 'Z',
-            }
-            # Only overwrite these if explicitly provided
-            if item.get('campaign'):
-                update_data['campaign'] = item['campaign'].strip()
-            if item.get('email'):
-                update_data['email'] = item['email'].strip()
-            if item.get('notes') or auto_note:
-                existing_notes = (existing.get('notes') or '').strip()
-                new_note = (item.get('notes') or auto_note or '').strip()
-                update_data['notes'] = f"{existing_notes}\n{new_note}".strip() if existing_notes else new_note
-            updated = db.update_lead(existing['id'], update_data)
-            results.append({'id': existing['id'], 'action': 'updated', 'status': status})
-            logging.info(f"Zapier upsert — updated lead: {name} ({existing['id']}) → {status}")
-        else:
-            # ── CREATE: new lead ────────────────────────────────────────────
-            notes_val = (item.get('notes') or auto_note or '').strip() or None
-            lead = db.create_lead({
-                'name': name,
-                'email': (item.get('email') or '').strip(),
-                'phone': phone,
-                'status': status,
-                'source': source,
-                'campaign': (item.get('campaign') or '').strip() or None,
-                'company': (item.get('company') or '').strip() or None,
-                'country': (item.get('country') or 'egypt').strip(),
-                'deal_value': float(item['deal_value']) if item.get('deal_value') else 0,
-                'notes': notes_val,
-                'last_contacted_at': datetime.utcnow().isoformat() + 'Z',
-                'next_followup_at': None,
-                'meta': {
-                    'platform': source,
-                    'raw_payload': item,
-                },
-            })
-            results.append({'id': lead['id'], 'action': 'created', 'status': status})
-            logging.info(f"Zapier lead created: {name} ({lead['id']})")
-
-    created = [r for r in results if r['action'] == 'created']
-    updated = [r for r in results if r['action'] == 'updated']
-    _audit_log({'action': 'zapier_webhook', 'leads_created': len(created), 'leads_updated': len(updated)})
+    _audit_log({'action': 'zapier_webhook', 'leads_created': len(leads_created)})
     return JSONResponse(content={
         "ok": True,
-        "leads_created": len(created),
-        "leads_updated": len(updated),
-        "results": results,
+        "leads_created": len(leads_created),
+        "lead_ids": [l['id'] for l in leads_created],
     })
 
 
