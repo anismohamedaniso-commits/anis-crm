@@ -1954,7 +1954,7 @@ async def get_leads(req: Request, limit: int = 0, offset: int = 0):
     """Return leads with optional pagination."""
     _require_user(req)
     # Enforce sane pagination bounds
-    MAX_PAGE = 500
+    MAX_PAGE = 1500
     if limit <= 0 or limit > MAX_PAGE:
         limit = MAX_PAGE
     offset = max(0, offset)
