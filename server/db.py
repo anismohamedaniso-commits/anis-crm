@@ -11,6 +11,7 @@ import json
 import logging
 import os
 import uuid
+import unicodedata
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
@@ -49,6 +50,88 @@ def _save_json(p: Path, data: Any) -> None:
 
 def _now_iso() -> str:
     return datetime.utcnow().isoformat() + 'Z'
+
+
+def _normalize_country(value: Any) -> Optional[str]:
+    if value is None:
+        return None
+    v = str(value).strip().lower().replace('-', '_').replace(' ', '_')
+    aliases = {
+        'eg': 'egypt',
+        'egy': 'egypt',
+        'egypt': 'egypt',
+        'sa': 'saudi_arabia',
+        'ksa': 'saudi_arabia',
+        'saudi': 'saudi_arabia',
+        'saudiarabia': 'saudi_arabia',
+        'saudi_arabia': 'saudi_arabia',
+        'saudi_arbia': 'saudi_arabia',
+    }
+    return aliases.get(v, v or None)
+
+
+def _country_from_phone(phone: Any) -> Optional[str]:
+    if phone is None:
+        return None
+    raw = str(phone).strip()
+    if not raw:
+        return None
+
+    # Normalize all numeral scripts (Arabic-Indic, etc.) to ASCII digits.
+    normalized_digits: list[str] = []
+    for ch in raw:
+        if not ch.isdigit():
+            continue
+        try:
+            normalized_digits.append(str(unicodedata.digit(ch)))
+        except (TypeError, ValueError):
+            normalized_digits.append(ch)
+    digits = ''.join(normalized_digits)
+    if not digits:
+        return None
+    while digits.startswith('00'):
+        digits = digits[2:]
+
+    # Saudi Arabia first to avoid false matches with permissive Egypt patterns.
+    # Accepted: +966xxxxxxxxx, 00966xxxxxxxxx, 05xxxxxxxx, 5xxxxxxxx.
+    if digits.startswith('966'):
+        return 'saudi_arabia'
+    if len(digits) == 10 and digits.startswith('05'):
+        return 'saudi_arabia'
+    if len(digits) == 9 and digits.startswith('5'):
+        return 'saudi_arabia'
+
+    # Egypt: +20..., 0020..., 01xxxxxxxxx, or local format without leading 0.
+    if digits.startswith('20'):
+        return 'egypt'
+    if len(digits) == 11 and digits.startswith('01'):
+        return 'egypt'
+    if len(digits) == 10 and digits.startswith('1') and len(digits) > 1 and digits[1] in {'0', '1', '2', '5'}:
+        return 'egypt'
+
+    return None
+
+
+def _country_from_campaign(campaign: Any) -> Optional[str]:
+    if campaign is None:
+        return None
+    v = str(campaign).strip().lower().replace('-', ' ').replace('_', ' ')
+    v = ' '.join(v.split())
+    if not v:
+        return None
+
+    # Explicit ManyChat routing from webhook campaign names.
+    if 'manychat' in v:
+        if 'saudi' in v or 'ksa' in v:
+            return 'saudi_arabia'
+        return 'egypt'
+
+    # Explicit routing keywords from campaign/source naming.
+    if 'saudi' in v or 'ksa' in v:
+        return 'saudi_arabia'
+    if 'egypt' in v or 'egy' in v:
+        return 'egypt'
+    return None
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -233,6 +316,14 @@ class CrmDatabase:
         lead.setdefault('created_at', now)
         lead.setdefault('updated_at', now)
         lead.setdefault('status', 'new')
+        auto_country = _country_from_phone(lead.get('phone'))
+        campaign_country = _country_from_campaign(lead.get('campaign'))
+        if auto_country:
+            lead['country'] = auto_country
+        elif campaign_country:
+            lead['country'] = campaign_country
+        else:
+            lead['country'] = _normalize_country(lead.get('country')) or 'egypt'
         if self._use_db:
             # Convert tags from list if needed
             return self._sb_insert('leads', lead)
