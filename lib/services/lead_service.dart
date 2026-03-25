@@ -127,6 +127,7 @@ class LeadService {
 
   /// Convert server JSON (snake_case) to LeadModel.
   LeadModel _fromServerJson(Map<String, dynamic> m) {
+    final meta = m['meta'] as Map<String, dynamic>?;
     return LeadModel(
       id: m['id'] as String? ?? const Uuid().v4(),
       name: m['name'] as String? ?? '',
@@ -141,6 +142,9 @@ class LeadService {
       nextFollowupAt: _parseDate(m['next_followup_at']),
       dealValue: (m['deal_value'] as num?)?.toDouble(),
       country: m['country'] as String? ?? 'egypt',
+      customStatusLabel: (meta?['status_label'] as String?)?.trim().isNotEmpty == true
+          ? (meta?['status_label'] as String).trim()
+          : null,
     );
   }
 
@@ -204,6 +208,12 @@ class LeadService {
         return LeadSource.facebook;
       case 'instagram':
         return LeadSource.instagram;
+      case 'imported':
+      case 'google_sheets':
+      case 'google sheets':
+        return LeadSource.imported;
+      case 'zapier':
+        return LeadSource.zapier;
       default:
         return LeadSource.whatsapp;
     }
@@ -296,7 +306,9 @@ class LeadService {
   /// Bulk update status for multiple leads.
   Future<int> bulkSetStatus(List<String> ids, LeadStatus status) async {
     final updated = leads.value.map((l) {
-      if (ids.contains(l.id)) return l.copyWith(status: status, updatedAt: DateTime.now());
+      if (ids.contains(l.id)) {
+        return l.copyWith(status: status, updatedAt: DateTime.now(), clearCustomStatusLabel: true);
+      }
       return l;
     }).toList();
     leads.value = updated;
@@ -373,7 +385,7 @@ class LeadService {
   Future<void> setStatus(String id, LeadStatus status) async {
     final existing = byId(id);
     if (existing == null) return;
-    await update(existing.copyWith(status: status));
+    await update(existing.copyWith(status: status, clearCustomStatusLabel: true));
   }
 
   Future<void> setLastContacted(String id, DateTime when) async {

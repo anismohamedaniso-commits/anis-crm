@@ -59,3 +59,42 @@ The assistant may reply with a JSON tool call that the server executes and then 
 
 
 Docker (optional): create a simple image with Python and run `uvicorn`.
+
+## ManyChat -> Google Sheets -> CRM (without Zapier)
+
+If your Zapier subscription ended, you can still send leads into CRM through Google Sheets automation.
+
+1. Configure API key for Google Sheets webhook:
+
+```bash
+export GOOGLE_SHEETS_API_KEY=your-secret-key
+```
+
+2. Send rows to this endpoint:
+
+```text
+POST /api/webhooks/google-sheets
+Header: x-api-key: your-secret-key
+```
+
+3. Supported payloads:
+
+- single row object
+- array of row objects
+- `{ "row": { ... } }`
+- `{ "rows": [ ... ] }`
+- `{ "values": { ... } }`
+
+Common fields:
+
+- `name` or `full_name` or `first_name` + `last_name`
+- `email`
+- `phone` / `phone_number` / `mobile`
+- `campaign`
+- `country`
+- `deal_value`
+- `notes`
+
+4. Optional migration shortcut:
+
+- If `GOOGLE_SHEETS_API_KEY` is not set, the endpoint accepts `ZAPIER_API_KEY` as fallback.

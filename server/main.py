@@ -134,6 +134,8 @@ WA_ACCESS_TOKEN = os.environ.get('WA_ACCESS_TOKEN', '')
 
 # ── Zapier integration config ──
 ZAPIER_API_KEY = os.environ.get('ZAPIER_API_KEY', '')
+# ── Google Sheets integration config ──
+GOOGLE_SHEETS_API_KEY = os.environ.get('GOOGLE_SHEETS_API_KEY', '')
 
 # Allowed CORS origins — set CORS_ORIGINS env var in production
 # (comma-separated list, e.g. "https://app.example.com,https://admin.example.com")
@@ -1423,6 +1425,12 @@ async def list_webhooks(req: Request):
             'url': '/api/webhooks/zapier',
             'enabled': bool(ZAPIER_API_KEY),
         },
+        {
+            'id': 'google_sheets',
+            'name': 'Google Sheets',
+            'url': '/api/webhooks/google-sheets',
+            'enabled': bool(GOOGLE_SHEETS_API_KEY or ZAPIER_API_KEY),
+        },
     ]
     return JSONResponse(content={'webhooks': webhooks})
 
@@ -1777,34 +1785,14 @@ async def zapier_webhook_receive(req: Request):
     leads_created = []
 
     for item in items:
-        name = (item.get('name') or item.get('full_name') or '').strip()
-        if not name:
-            first = (item.get('first_name') or '').strip()
-            last = (item.get('last_name') or '').strip()
-            name = f"{first} {last}".strip()
-        if not name:
-            name = 'Zapier Lead'
-
-        lead = db.create_lead({
-            'name': name,
-            'email': (item.get('email') or '').strip(),
-            'phone': (item.get('phone') or item.get('phone_number') or '').strip(),
-            'status': item.get('status', 'fresh'),
-            'source': item.get('source', 'zapier'),
-            'campaign': (item.get('campaign') or '').strip() or None,
-            'company': (item.get('company') or '').strip() or None,
-            'country': (item.get('country') or 'egypt').strip(),
-            'deal_value': float(item['deal_value']) if item.get('deal_value') else 0,
-            'notes': (item.get('notes') or '').strip() or None,
-            'last_contacted_at': None,
-            'next_followup_at': None,
-            'meta': {
-                'platform': 'zapier',
-                'raw_payload': item,
-            },
-        })
+        lead = _create_inbound_lead(
+            item,
+            default_name='Zapier Lead',
+            default_source='zapier',
+            platform='zapier',
+        )
         leads_created.append(lead)
-        logging.info(f"Zapier lead created: {name} ({lead['id']})")
+        logging.info(f"Zapier lead created: {lead['name']} ({lead['id']})")
 
     _audit_log({'action': 'zapier_webhook', 'leads_created': len(leads_created)})
     return JSONResponse(content={
@@ -1814,8 +1802,141 @@ async def zapier_webhook_receive(req: Request):
     })
 
 
+def _create_inbound_lead(item: dict, default_name: str, default_source: str, platform: str) -> dict:
+    """Create a lead from inbound webhook payloads (Zapier, Google Sheets, etc.)."""
+    name = (item.get('name') or item.get('full_name') or '').strip()
+    if not name:
+        first = (item.get('first_name') or '').strip()
+        last = (item.get('last_name') or '').strip()
+        name = f"{first} {last}".strip()
+    if not name:
+        name = default_name
+
+    deal_value_raw = item.get('deal_value')
+    try:
+        deal_value = float(deal_value_raw) if deal_value_raw not in (None, '') else 0
+    except (TypeError, ValueError):
+        deal_value = 0
+
+    raw_status = str(item.get('status') or 'fresh').strip()
+    status, status_label = _normalize_inbound_status(raw_status)
+
+    meta = {
+        'platform': platform,
+        'sheet_name': item.get('sheet_name'),
+        'raw_payload': item,
+    }
+    if status_label:
+        meta['status_label'] = status_label
+
+    return db.create_lead({
+        'name': name,
+        'email': (item.get('email') or '').strip(),
+        'phone': (item.get('phone') or item.get('phone_number') or item.get('mobile') or '').strip(),
+        'status': status,
+        'source': item.get('source', default_source),
+        'campaign': (item.get('campaign') or '').strip() or None,
+        'company': (item.get('company') or '').strip() or None,
+        'country': (item.get('country') or 'egypt').strip(),
+        'deal_value': deal_value,
+        'notes': (item.get('notes') or '').strip() or None,
+        'last_contacted_at': None,
+        'next_followup_at': None,
+        'meta': meta,
+    })
+
+
+def _normalize_inbound_status(raw_status: str) -> tuple[str, str | None]:
+    """Map external status labels to canonical CRM statuses.
+
+    Returns:
+      (canonical_status, custom_label_or_none)
+    """
+    v = raw_status.strip().lower().replace('-', ' ').replace('_', ' ')
+    v = ' '.join(v.split())
+
+    aliases = {
+        'fresh': 'fresh',
+        'new': 'fresh',
+        'interested': 'interested',
+        'intrested': 'interested',
+        'very invested': 'converted',
+        'very interested': 'converted',
+        'contact': 'followUp',
+        'contacted': 'followUp',
+        'follow up': 'followUp',
+        'followup': 'followUp',
+        'no answer': 'noAnswer',
+        'not interested': 'notInterested',
+        'converted': 'converted',
+        'closed': 'closed',
+    }
+
+    canonical = aliases.get(v, 'fresh')
+    keep_custom_label = v not in {'fresh', 'interested', 'follow up', 'followup', 'no answer', 'not interested', 'converted', 'closed'}
+    if keep_custom_label and raw_status.strip():
+        return canonical, raw_status.strip()
+    return canonical, None
+
+
+@app.post('/api/webhooks/google-sheets')
+async def google_sheets_webhook_receive(req: Request):
+    """
+    Receive leads from Google Sheets automation (e.g., Apps Script).
+    Authentication via X-API-Key header.
+
+    Supports payload forms:
+      - single row object
+      - list of row objects
+      - {"row": {...}}
+      - {"rows": [{...}, ...]}
+      - {"values": {...}}
+    """
+    # Prefer dedicated key; fallback to existing Zapier key for easy migration
+    expected_key = GOOGLE_SHEETS_API_KEY or ZAPIER_API_KEY
+    api_key = req.headers.get('x-api-key', '')
+    if not expected_key or not api_key:
+        raise HTTPException(status_code=401, detail='Missing API key')
+    if not hmac.compare_digest(api_key, expected_key):
+        raise HTTPException(status_code=403, detail='Invalid API key')
+
+    payload = await req.json()
+    logging.info(f"Google Sheets webhook received: {json.dumps(payload, indent=2)}")
+
+    if isinstance(payload, list):
+        items = payload
+    elif isinstance(payload, dict) and isinstance(payload.get('rows'), list):
+        items = payload['rows']
+    elif isinstance(payload, dict) and isinstance(payload.get('row'), dict):
+        items = [payload['row']]
+    elif isinstance(payload, dict) and isinstance(payload.get('values'), dict):
+        items = [payload['values']]
+    else:
+        items = [payload]
+
+    leads_created = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        lead = _create_inbound_lead(
+            item,
+            default_name='Google Sheets Lead',
+            default_source='imported',
+            platform='google_sheets',
+        )
+        leads_created.append(lead)
+        logging.info(f"Google Sheets lead created: {lead['name']} ({lead['id']})")
+
+    _audit_log({'action': 'google_sheets_webhook', 'leads_created': len(leads_created)})
+    return JSONResponse(content={
+        "ok": True,
+        "leads_created": len(leads_created),
+        "lead_ids": [l['id'] for l in leads_created],
+    })
+
+
 # =============================================================================
-# INTEGRATION CONFIG – runtime configuration for FB / WA / Zapier tokens
+# INTEGRATION CONFIG – runtime configuration for FB / WA / Zapier / Google Sheets tokens
 # =============================================================================
 
 INTEGRATION_CONFIG_FILE = DATA_DIR / 'integration_config.json'
@@ -1835,7 +1956,7 @@ def _save_integration_config(config: dict):
 
 def _apply_integration_config():
     """Load saved integration config and apply to module-level variables."""
-    global FB_VERIFY_TOKEN, FB_PAGE_ACCESS_TOKEN, WA_VERIFY_TOKEN, WA_PHONE_NUMBER_ID, WA_ACCESS_TOKEN, ZAPIER_API_KEY
+    global FB_VERIFY_TOKEN, FB_PAGE_ACCESS_TOKEN, WA_VERIFY_TOKEN, WA_PHONE_NUMBER_ID, WA_ACCESS_TOKEN, ZAPIER_API_KEY, GOOGLE_SHEETS_API_KEY
     config = _load_integration_config()
     if config.get('fb_verify_token'):
         FB_VERIFY_TOKEN = config['fb_verify_token']
@@ -1849,6 +1970,8 @@ def _apply_integration_config():
         WA_ACCESS_TOKEN = config['wa_access_token']
     if config.get('zapier_api_key'):
         ZAPIER_API_KEY = config['zapier_api_key']
+    if config.get('google_sheets_api_key'):
+        GOOGLE_SHEETS_API_KEY = config['google_sheets_api_key']
 
 # Apply on startup
 _apply_integration_config()
@@ -1883,6 +2006,11 @@ async def get_integration_config(req: Request):
             'api_key': _mask(ZAPIER_API_KEY),
             'webhook_url': '/api/webhooks/zapier',
         },
+        'google_sheets': {
+            'configured': bool(GOOGLE_SHEETS_API_KEY or ZAPIER_API_KEY),
+            'api_key': _mask(GOOGLE_SHEETS_API_KEY or ZAPIER_API_KEY),
+            'webhook_url': '/api/webhooks/google-sheets',
+        },
     })
 
 
@@ -1915,6 +2043,11 @@ async def set_integration_config(req: Request):
     if zap.get('api_key'):
         config['zapier_api_key'] = zap['api_key']
 
+    # Google Sheets config
+    gsheet = payload.get('google_sheets', {})
+    if gsheet.get('api_key'):
+        config['google_sheets_api_key'] = gsheet['api_key']
+
     _save_integration_config(config)
     _apply_integration_config()
 
@@ -1932,6 +2065,7 @@ async def integration_status(req: Request):
     fb_leads = sum(1 for l in leads if (l.get('source') or '') == 'facebook')
     wa_leads = sum(1 for l in leads if (l.get('source') or '') == 'whatsapp')
     zap_leads = sum(1 for l in leads if (l.get('source') or '') == 'zapier')
+    gs_leads = sum(1 for l in leads if ((l.get('meta') or {}).get('platform') or '') == 'google_sheets')
 
     return JSONResponse(content={
         'facebook': {
@@ -1945,6 +2079,10 @@ async def integration_status(req: Request):
         'zapier': {
             'connected': bool(ZAPIER_API_KEY),
             'leads_count': zap_leads,
+        },
+        'google_sheets': {
+            'connected': bool(GOOGLE_SHEETS_API_KEY or ZAPIER_API_KEY),
+            'leads_count': gs_leads,
         },
     })
 

@@ -17,6 +17,7 @@ class LeadModel {
   final String? assignedToName;
   final double? dealValue;
   final String country;
+  final String? customStatusLabel;
 
   const LeadModel({
     required this.id,
@@ -34,6 +35,7 @@ class LeadModel {
     this.assignedToName,
     this.dealValue,
     this.country = 'egypt',
+    this.customStatusLabel,
   });
 
   LeadModel copyWith({
@@ -52,6 +54,8 @@ class LeadModel {
     String? assignedToName,
     double? dealValue,
     String? country,
+    String? customStatusLabel,
+    bool clearCustomStatusLabel = false,
   }) => LeadModel(
         id: id ?? this.id,
         name: name ?? this.name,
@@ -68,6 +72,7 @@ class LeadModel {
         assignedToName: assignedToName ?? this.assignedToName,
         dealValue: dealValue ?? this.dealValue,
         country: country ?? this.country,
+        customStatusLabel: clearCustomStatusLabel ? null : (customStatusLabel ?? this.customStatusLabel),
       );
 
   Map<String, dynamic> toJson() => {
@@ -86,6 +91,7 @@ class LeadModel {
         'assigned_to_name': assignedToName,
         'deal_value': dealValue,
         'country': country,
+        'custom_status_label': customStatusLabel,
       };
 
   factory LeadModel.fromJson(Map<String, dynamic> json) => LeadModel(
@@ -104,6 +110,7 @@ class LeadModel {
         assignedToName: json['assigned_to_name'] as String?,
         dealValue: (json['deal_value'] as num?)?.toDouble(),
         country: json['country'] as String? ?? 'egypt',
+        customStatusLabel: json['custom_status_label'] as String?,
       );
 }
 

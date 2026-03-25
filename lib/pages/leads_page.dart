@@ -44,6 +44,12 @@ const Color _kClosedColor = Color(0xFF64748B);
       LeadStatus.closed => ('Closed', _kClosedColor, Icons.check_circle_rounded),
     };
 
+String _statusDisplayLabel(LeadModel lead) {
+  final custom = lead.customStatusLabel?.trim();
+  if (custom != null && custom.isNotEmpty) return custom;
+  return _statusMeta(lead.status).$1;
+}
+
 String _tempLabel(LeadTemperature t) => switch (t) {
       LeadTemperature.cold => 'Cold',
       LeadTemperature.warm => 'Warm',
@@ -873,7 +879,8 @@ class _LeadRowState extends State<_LeadRow> {
     final tt = Theme.of(context).textTheme;
     final lead = widget.lead;
     final score = LeadScoreEngine.compute(lead);
-    final (statusLabel, statusColor, _) = _statusMeta(lead.status);
+    final (_, statusColor, _) = _statusMeta(lead.status);
+    final statusLabel = _statusDisplayLabel(lead);
     final initial = _initials(lead.name);
     final avatarBg = _avatarColor(lead.name);
 
@@ -1218,7 +1225,8 @@ class _MobileList extends StatelessWidget {
       itemBuilder: (context, i) {
         final lead = leads[i];
         final score = LeadScoreEngine.compute(lead);
-        final (statusLabel, statusColor, _) = _statusMeta(lead.status);
+        final (_, statusColor, _) = _statusMeta(lead.status);
+        final statusLabel = _statusDisplayLabel(lead);
         final avatarBg = _avatarColor(lead.name);
 
         final isSel = selectedIds.contains(lead.id);
