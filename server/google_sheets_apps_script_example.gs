@@ -1,6 +1,6 @@
 // Google Apps Script example: send newly added sheet rows to CRM.
 // Configure these values before use.
-const CRM_WEBHOOK_URL = 'https://YOUR_DOMAIN/api/webhooks/google-sheets';
+const CRM_WEBHOOK_URL = 'https://anis-crm-api-production.up.railway.app/api/webhooks/google-sheets';
 const CRM_API_KEY = 'YOUR_GOOGLE_SHEETS_API_KEY';
 
 function onEdit(e) {
