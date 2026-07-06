@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,6 +20,35 @@ class LeadService {
   int _totalLeads = 0;
   static const int pageSize = 50;
   final _api = ApiClient.instance;
+  Timer? _pollTimer;
+
+  /// Start polling the server every 30 seconds for new leads (e.g. from Zapier).
+  void startPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(seconds: 30), (_) => _silentRefresh());
+  }
+
+  void stopPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = null;
+  }
+
+  Future<void> _silentRefresh() async {
+    try {
+      final serverLeads = await _api.getLeads();
+      if (serverLeads == null) return;
+      final parsed = <LeadModel>[];
+      for (final m in serverLeads) {
+        try { parsed.add(_fromServerJson(m)); } catch (_) {}
+      }
+      if (parsed.length != leads.value.length ||
+          parsed.any((n) => !leads.value.any((o) => o.id == n.id))) {
+        leads.value = parsed;
+        _totalLeads = parsed.length;
+        debugPrint('LeadService: poll found ${parsed.length} leads');
+      }
+    } catch (_) {}
+  }
 
   /// Reset loaded state so data is re-fetched on next login.
   void reset() {
@@ -145,6 +175,12 @@ class LeadService {
       customStatusLabel: (meta?['status_label'] as String?)?.trim().isNotEmpty == true
           ? (meta?['status_label'] as String).trim()
           : null,
+      firstName: m['first_name'] as String?,
+      lastName: m['last_name'] as String?,
+      jobTitle: m['job_title'] as String?,
+      company: m['company'] as String?,
+      formQuestion: m['form_question'] as String?,
+      dateAdded: m['date_added'] as String?,
     );
   }
 
@@ -164,6 +200,12 @@ class LeadService {
       'next_followup_at': lead.nextFollowupAt?.toUtc().toIso8601String(),
       'deal_value': lead.dealValue,
       'country': lead.country,
+      'first_name': lead.firstName ?? '',
+      'last_name': lead.lastName ?? '',
+      'job_title': lead.jobTitle ?? '',
+      'company': lead.company ?? '',
+      'form_question': lead.formQuestion ?? '',
+      'date_added': lead.dateAdded ?? '',
     };
   }
 
@@ -256,6 +298,12 @@ class LeadService {
     DateTime? createdAt,
     double? dealValue,
     String country = 'egypt',
+    String? firstName,
+    String? lastName,
+    String? jobTitle,
+    String? company,
+    String? formQuestion,
+    String? dateAdded,
   }) async {
     final now = DateTime.now();
     final lead = LeadModel(
@@ -270,6 +318,12 @@ class LeadService {
       updatedAt: now,
       dealValue: dealValue,
       country: country,
+      firstName: firstName,
+      lastName: lastName,
+      jobTitle: jobTitle,
+      company: company,
+      formQuestion: formQuestion,
+      dateAdded: dateAdded,
     );
     debugPrint('LeadService.create name="$name" status=${status.name}');
     final list = [...leads.value, lead];
