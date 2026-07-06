@@ -1805,9 +1805,9 @@ async def zapier_webhook_receive(req: Request):
 def _create_inbound_lead(item: dict, default_name: str, default_source: str, platform: str) -> dict:
     """Create a lead from inbound webhook payloads (Zapier, Google Sheets, etc.)."""
     name = (item.get('name') or item.get('full_name') or '').strip()
+    first = (item.get('first_name') or '').strip()
+    last = (item.get('last_name') or '').strip()
     if not name:
-        first = (item.get('first_name') or '').strip()
-        last = (item.get('last_name') or '').strip()
         name = f"{first} {last}".strip()
     if not name:
         name = default_name
@@ -1836,7 +1836,12 @@ def _create_inbound_lead(item: dict, default_name: str, default_source: str, pla
         'status': status,
         'source': item.get('source', default_source),
         'campaign': (item.get('campaign') or '').strip() or None,
-        'company': (item.get('company') or '').strip() or None,
+        'company': (item.get('company') or item.get('company_name') or '').strip() or None,
+        'first_name': first or None,
+        'last_name': last or None,
+        'job_title': (item.get('job_title') or item.get('title') or item.get('position') or '').strip() or None,
+        'form_question': (item.get('form_question') or item.get('question') or item.get('answer') or '').strip() or None,
+        'date_added': (item.get('date_added') or item.get('form_date') or item.get('submission_date') or '').strip() or None,
         'country': (item.get('country') or 'egypt').strip(),
         'deal_value': deal_value,
         'notes': (item.get('notes') or '').strip() or None,
@@ -1846,7 +1851,7 @@ def _create_inbound_lead(item: dict, default_name: str, default_source: str, pla
     })
 
 
-def _normalize_inbound_status(raw_status: str) -> tuple[str, str | None]:
+def _normalize_inbound_status(raw_status: str) -> tuple[str, Optional[str]]:
     """Map external status labels to canonical CRM statuses.
 
     Returns:
