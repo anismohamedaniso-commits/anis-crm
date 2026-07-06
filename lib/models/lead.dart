@@ -18,6 +18,12 @@ class LeadModel {
   final double? dealValue;
   final String country;
   final String? customStatusLabel;
+  final String? firstName;
+  final String? lastName;
+  final String? jobTitle;
+  final String? company;
+  final String? formQuestion;
+  final String? dateAdded;
 
   const LeadModel({
     required this.id,
@@ -36,6 +42,12 @@ class LeadModel {
     this.dealValue,
     this.country = 'egypt',
     this.customStatusLabel,
+    this.firstName,
+    this.lastName,
+    this.jobTitle,
+    this.company,
+    this.formQuestion,
+    this.dateAdded,
   });
 
   LeadModel copyWith({
@@ -56,6 +68,12 @@ class LeadModel {
     String? country,
     String? customStatusLabel,
     bool clearCustomStatusLabel = false,
+    String? firstName,
+    String? lastName,
+    String? jobTitle,
+    String? company,
+    String? formQuestion,
+    String? dateAdded,
   }) => LeadModel(
         id: id ?? this.id,
         name: name ?? this.name,
@@ -73,6 +91,12 @@ class LeadModel {
         dealValue: dealValue ?? this.dealValue,
         country: country ?? this.country,
         customStatusLabel: clearCustomStatusLabel ? null : (customStatusLabel ?? this.customStatusLabel),
+        firstName: firstName ?? this.firstName,
+        lastName: lastName ?? this.lastName,
+        jobTitle: jobTitle ?? this.jobTitle,
+        company: company ?? this.company,
+        formQuestion: formQuestion ?? this.formQuestion,
+        dateAdded: dateAdded ?? this.dateAdded,
       );
 
   Map<String, dynamic> toJson() => {
@@ -92,6 +116,12 @@ class LeadModel {
         'deal_value': dealValue,
         'country': country,
         'custom_status_label': customStatusLabel,
+        'first_name': firstName,
+        'last_name': lastName,
+        'job_title': jobTitle,
+        'company': company,
+        'form_question': formQuestion,
+        'date_added': dateAdded,
       };
 
   factory LeadModel.fromJson(Map<String, dynamic> json) => LeadModel(
@@ -111,6 +141,12 @@ class LeadModel {
         dealValue: (json['deal_value'] as num?)?.toDouble(),
         country: json['country'] as String? ?? 'egypt',
         customStatusLabel: json['custom_status_label'] as String?,
+        firstName: json['first_name'] as String?,
+        lastName: json['last_name'] as String?,
+        jobTitle: json['job_title'] as String?,
+        company: json['company'] as String?,
+        formQuestion: json['form_question'] as String?,
+        dateAdded: json['date_added'] as String?,
       );
 }
 
