@@ -407,7 +407,10 @@ class _LeadSummaryCard extends StatelessWidget {
           const SizedBox(height: 12),
           _SourceChannelRow(lead: l),
           const SizedBox(height: 8),
-          _InfoRow(icon: Icons.calendar_today_outlined, label: 'Date added', value: _formatDate(l.createdAt)),
+          _InfoRow(icon: Icons.calendar_today_outlined, label: 'Date added', value: (l.dateAdded != null && l.dateAdded!.isNotEmpty) ? l.dateAdded! : _formatDate(l.createdAt)),
+          if (l.jobTitle != null && l.jobTitle!.isNotEmpty) ...[const SizedBox(height: 8), _InfoRow(icon: Icons.badge_outlined, label: 'Job title', value: l.jobTitle!)],
+          if (l.company != null && l.company!.isNotEmpty) ...[const SizedBox(height: 8), _InfoRow(icon: Icons.business_outlined, label: 'Company', value: l.company!)],
+          if (l.formQuestion != null && l.formQuestion!.isNotEmpty) ...[const SizedBox(height: 8), _InfoRow(icon: Icons.help_outline, label: 'Form answer', value: l.formQuestion!)],
           if (l.campaign != null && l.campaign!.isNotEmpty) ...[const SizedBox(height: 8), _InfoRow(icon: Icons.campaign_outlined, label: 'Campaign', value: l.campaign!)],
         ]),
       ),
@@ -1304,6 +1307,7 @@ class _EditLeadDialog extends StatefulWidget {
 
 class _EditLeadDialogState extends State<_EditLeadDialog> {
   late final TextEditingController _name, _phone, _email, _campaign, _dealValue;
+  late final TextEditingController _firstName, _lastName, _jobTitle, _company, _formQuestion;
   bool _saving = false;
 
   @override
@@ -1314,10 +1318,15 @@ class _EditLeadDialogState extends State<_EditLeadDialog> {
     _email = TextEditingController(text: widget.lead.email ?? '');
     _campaign = TextEditingController(text: widget.lead.campaign ?? '');
     _dealValue = TextEditingController(text: widget.lead.dealValue != null ? widget.lead.dealValue!.toStringAsFixed(0) : '');
+    _firstName = TextEditingController(text: widget.lead.firstName ?? '');
+    _lastName = TextEditingController(text: widget.lead.lastName ?? '');
+    _jobTitle = TextEditingController(text: widget.lead.jobTitle ?? '');
+    _company = TextEditingController(text: widget.lead.company ?? '');
+    _formQuestion = TextEditingController(text: widget.lead.formQuestion ?? '');
   }
 
   @override
-  void dispose() { _name.dispose(); _phone.dispose(); _email.dispose(); _campaign.dispose(); _dealValue.dispose(); super.dispose(); }
+  void dispose() { _name.dispose(); _phone.dispose(); _email.dispose(); _campaign.dispose(); _dealValue.dispose(); _firstName.dispose(); _lastName.dispose(); _jobTitle.dispose(); _company.dispose(); _formQuestion.dispose(); super.dispose(); }
 
   Widget _field(TextEditingController c, String label, IconData icon) =>
       TextField(controller: c, decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))));
@@ -1330,8 +1339,12 @@ class _EditLeadDialogState extends State<_EditLeadDialog> {
       title: Row(children: [Icon(Icons.edit_outlined, size: 20, color: cs.primary), const SizedBox(width: 10), const Text('Edit Lead')]),
       content: SingleChildScrollView(child: SizedBox(width: 420, child: Column(mainAxisSize: MainAxisSize.min, children: [
         _field(_name, 'Name', Icons.person_outline), const SizedBox(height: 14),
+        Row(children: [Expanded(child: _field(_firstName, 'First Name', Icons.person_outline)), const SizedBox(width: 10), Expanded(child: _field(_lastName, 'Last Name', Icons.person_outline))]), const SizedBox(height: 14),
         _field(_phone, 'Phone', Icons.phone_outlined), const SizedBox(height: 14),
         _field(_email, 'Email', Icons.email_outlined), const SizedBox(height: 14),
+        _field(_jobTitle, 'Job Title', Icons.badge_outlined), const SizedBox(height: 14),
+        _field(_company, 'Company', Icons.business_outlined), const SizedBox(height: 14),
+        _field(_formQuestion, 'Form Answer', Icons.help_outline), const SizedBox(height: 14),
         _field(_campaign, 'Campaign', Icons.campaign_outlined), const SizedBox(height: 14),
         TextField(controller: _dealValue, decoration: InputDecoration(labelText: 'Deal Value (EGP)', prefixIcon: const Icon(Icons.attach_money), prefixText: 'EGP ', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))), keyboardType: const TextInputType.numberWithOptions(decimal: true)),
       ]))),
@@ -1357,6 +1370,11 @@ class _EditLeadDialogState extends State<_EditLeadDialog> {
         name: name, phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
         email: email.isEmpty ? null : email, campaign: _campaign.text.trim().isEmpty ? null : _campaign.text.trim(),
         dealValue: double.tryParse(_dealValue.text.trim()),
+        firstName: _firstName.text.trim().isEmpty ? null : _firstName.text.trim(),
+        lastName: _lastName.text.trim().isEmpty ? null : _lastName.text.trim(),
+        jobTitle: _jobTitle.text.trim().isEmpty ? null : _jobTitle.text.trim(),
+        company: _company.text.trim().isEmpty ? null : _company.text.trim(),
+        formQuestion: _formQuestion.text.trim().isEmpty ? null : _formQuestion.text.trim(),
       ));
       if (context.mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lead updated'), duration: Duration(seconds: 1))); Navigator.of(context).pop(true); }
     } catch (e) {

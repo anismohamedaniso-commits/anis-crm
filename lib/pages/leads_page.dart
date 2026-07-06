@@ -1536,9 +1536,15 @@ class _ImportLeadsDialogState extends State<_ImportLeadsDialog> {
   String? _error;
   final Map<String, int?> _map = {
     'Name': null,
-    'Phone': null,
+    'First Name': null,
+    'Last Name': null,
     'Email': null,
+    'Phone': null,
+    'Job Title': null,
+    'Company': null,
+    'Form Question': null,
     'Source': null,
+    'Date Added': null,
     'Date': null,
   };
   String _dupPolicy = 'skip';
@@ -1547,15 +1553,27 @@ class _ImportLeadsDialogState extends State<_ImportLeadsDialog> {
   void _autoMapHeaders() {
     for (int i = 0; i < _headers.length; i++) {
       final h = _headers[i].toLowerCase().trim();
-      if (_map['Name'] == null && (h == 'name' || h == 'full name' || h == 'fullname' || h == 'lead name' || h == 'contact' || h == 'contact name')) {
+      if (_map['First Name'] == null && (h == 'first name' || h == 'firstname' || h == 'first' || h == 'fname' || h == 'given name')) {
+        _map['First Name'] = i;
+      } else if (_map['Last Name'] == null && (h == 'last name' || h == 'lastname' || h == 'last' || h == 'lname' || h == 'surname' || h == 'family name')) {
+        _map['Last Name'] = i;
+      } else if (_map['Name'] == null && (h == 'name' || h == 'full name' || h == 'fullname' || h == 'lead name' || h == 'contact' || h == 'contact name')) {
         _map['Name'] = i;
-      } else if (_map['Phone'] == null && (h == 'phone' || h == 'phone number' || h == 'mobile' || h == 'cell' || h == 'tel' || h == 'telephone' || h == 'whatsapp')) {
-        _map['Phone'] = i;
       } else if (_map['Email'] == null && (h == 'email' || h == 'e-mail' || h == 'email address' || h == 'mail')) {
         _map['Email'] = i;
+      } else if (_map['Phone'] == null && (h == 'phone' || h == 'phone number' || h == 'mobile' || h == 'cell' || h == 'tel' || h == 'telephone' || h == 'whatsapp')) {
+        _map['Phone'] = i;
+      } else if (_map['Job Title'] == null && (h == 'job title' || h == 'jobtitle' || h == 'title' || h == 'position' || h == 'role' || h == 'designation')) {
+        _map['Job Title'] = i;
+      } else if (_map['Company'] == null && (h == 'company' || h == 'company name' || h == 'organization' || h == 'organisation' || h == 'business' || h == 'employer')) {
+        _map['Company'] = i;
+      } else if (_map['Form Question'] == null && (h == 'form question' || h == 'question' || h == 'answer' || h == 'form answer' || h == 'response' || h == 'message' || h == 'comment' || h == 'comments' || h == 'note' || h == 'notes')) {
+        _map['Form Question'] = i;
       } else if (_map['Source'] == null && (h == 'source' || h == 'channel' || h == 'source/channel' || h == 'lead source' || h == 'platform' || h == 'origin')) {
         _map['Source'] = i;
-      } else if (_map['Date'] == null && (h == 'date' || h == 'created' || h == 'created_at' || h == 'createdat' || h == 'created at' || h == 'timestamp' || h == 'time' || h == 'added' || h == 'date added' || h == 'registration date' || h == 'signup date' || h == 'joined')) {
+      } else if (_map['Date Added'] == null && (h == 'date added' || h == 'date_added' || h == 'added' || h == 'form date' || h == 'submission date' || h == 'submitted' || h == 'date submitted' || h == 'signup date' || h == 'registration date' || h == 'joined')) {
+        _map['Date Added'] = i;
+      } else if (_map['Date'] == null && (h == 'date' || h == 'created' || h == 'created_at' || h == 'createdat' || h == 'created at' || h == 'timestamp' || h == 'time')) {
         _map['Date'] = i;
       }
     }
@@ -1565,7 +1583,7 @@ class _ImportLeadsDialogState extends State<_ImportLeadsDialog> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final mapped = _map.values.where((v) => v != null).length;
-    final nameOk = _map['Name'] != null;
+    final nameOk = _map['Name'] != null || _map['First Name'] != null;
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Row(children: [
@@ -1594,7 +1612,7 @@ class _ImportLeadsDialogState extends State<_ImportLeadsDialog> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(color: cs.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                child: Text('$mapped/5 mapped', style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600, color: cs.primary)),
+                child: Text('$mapped mapped', style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600, color: cs.primary)),
               ),
             ],
           ]),
@@ -1634,12 +1652,12 @@ class _ImportLeadsDialogState extends State<_ImportLeadsDialog> {
   Widget _mappingDropdown(String field) {
     final cs = Theme.of(context).colorScheme;
     final isMapped = _map[field] != null;
-    final isRequired = field == 'Name';
+    final isRequired = field == 'First Name';
     return SizedBox(
-      width: 320,
+      width: 330,
       child: Row(children: [
-        SizedBox(width: 60, child: Row(children: [
-          Text(field, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500)),
+        SizedBox(width: 96, child: Row(children: [
+          Flexible(child: Text(field, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500))),
           if (isRequired) Text(' *', style: TextStyle(color: cs.error, fontWeight: FontWeight.w700)),
         ])),
         const SizedBox(width: 8),
@@ -1732,14 +1750,24 @@ class _ImportLeadsDialogState extends State<_ImportLeadsDialog> {
     int total = _rows.length, ok = 0, skipped = 0, failed = 0, updated = 0;
     for (final row in _rows) {
       try {
-        String? name = _val(row, _map['Name']);
+        final firstName = _val(row, _map['First Name']);
+        final lastName = _val(row, _map['Last Name']);
+        String name = (_val(row, _map['Name']) ?? '').trim();
+        if (name.isEmpty) {
+          name = [firstName, lastName].where((s) => (s ?? '').trim().isNotEmpty).map((s) => s!.trim()).join(' ').trim();
+        }
         final phone = _val(row, _map['Phone']);
         final email = _val(row, _map['Email']);
+        final jobTitle = _val(row, _map['Job Title']);
+        final company = _val(row, _map['Company']);
+        final formQuestion = _val(row, _map['Form Question']);
+        final dateAdded = _val(row, _map['Date Added']);
         final sourceStr = _val(row, _map['Source']);
         final dateStr = _val(row, _map['Date']);
-        if (name == null || name.trim().isEmpty) { skipped++; continue; }
+        if (name.isEmpty) { skipped++; continue; }
         final source = _sourceFrom(sourceStr) ?? LeadSource.imported;
-        final createdAt = _parseDate(dateStr);
+        final createdAt = _parseDate(dateStr) ?? _parseDate(dateAdded);
+        String? nn(String? s) => (s == null || s.trim().isEmpty) ? null : s.trim();
         final dup = _findDuplicate(email, phone);
         if (dup != null) {
           if (_dupPolicy == 'update') {
@@ -1750,17 +1778,29 @@ class _ImportLeadsDialogState extends State<_ImportLeadsDialog> {
               source: source,
               createdAt: createdAt ?? dup.createdAt,
               updatedAt: DateTime.now(),
+              firstName: nn(firstName),
+              lastName: nn(lastName),
+              jobTitle: nn(jobTitle),
+              company: nn(company),
+              formQuestion: nn(formQuestion),
+              dateAdded: nn(dateAdded),
             ));
             updated++;
           } else { skipped++; }
         } else {
           await LeadService.instance.create(
             name: name,
-            phone: phone?.isEmpty == true ? null : phone,
-            email: email?.isEmpty == true ? null : email,
+            phone: nn(phone),
+            email: nn(email),
             source: source,
             createdAt: createdAt,
             country: context.read<AppState>().selectedMarketId,
+            firstName: nn(firstName),
+            lastName: nn(lastName),
+            jobTitle: nn(jobTitle),
+            company: nn(company),
+            formQuestion: nn(formQuestion),
+            dateAdded: nn(dateAdded),
           );
           ok++;
         }
