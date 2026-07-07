@@ -14,6 +14,7 @@ import 'package:provider/provider.dart';
 
 import 'dart:convert';
 import 'package:csv/csv.dart';
+import 'package:uuid/uuid.dart';
 import 'package:excel/excel.dart' as ex;
 import 'package:anis_crm/utils/simple_file_picker.dart';
 import 'package:anis_crm/utils/csv_download_stub.dart'
@@ -1747,7 +1748,12 @@ class _ImportLeadsDialogState extends State<_ImportLeadsDialog> {
 
   Future<void> _import() async {
     setState(() => _loading = true);
+    final country = context.read<AppState>().selectedMarketId;
+    final now = DateTime.now();
+    const uuid = Uuid();
     int total = _rows.length, ok = 0, skipped = 0, failed = 0, updated = 0;
+    final List<LeadModel> newLeads = [];
+    String? nn(String? s) => (s == null || s.trim().isEmpty) ? null : s.trim();
     for (final row in _rows) {
       try {
         final firstName = _val(row, _map['First Name']);
@@ -1756,6 +1762,7 @@ class _ImportLeadsDialogState extends State<_ImportLeadsDialog> {
         if (name.isEmpty) {
           name = [firstName, lastName].where((s) => (s ?? '').trim().isNotEmpty).map((s) => s!.trim()).join(' ').trim();
         }
+        if (name.isEmpty) { skipped++; continue; }
         final phone = _val(row, _map['Phone']);
         final email = _val(row, _map['Email']);
         final jobTitle = _val(row, _map['Job Title']);
@@ -1764,10 +1771,8 @@ class _ImportLeadsDialogState extends State<_ImportLeadsDialog> {
         final dateAdded = _val(row, _map['Date Added']);
         final sourceStr = _val(row, _map['Source']);
         final dateStr = _val(row, _map['Date']);
-        if (name.isEmpty) { skipped++; continue; }
         final source = _sourceFrom(sourceStr) ?? LeadSource.imported;
-        final createdAt = _parseDate(dateStr) ?? _parseDate(dateAdded);
-        String? nn(String? s) => (s == null || s.trim().isEmpty) ? null : s.trim();
+        final createdAt = _parseDate(dateStr) ?? _parseDate(dateAdded) ?? now;
         final dup = _findDuplicate(email, phone);
         if (dup != null) {
           if (_dupPolicy == 'update') {
@@ -1776,35 +1781,30 @@ class _ImportLeadsDialogState extends State<_ImportLeadsDialog> {
               email: (email?.isNotEmpty == true) ? email : dup.email,
               phone: (phone?.isNotEmpty == true) ? phone : dup.phone,
               source: source,
-              createdAt: createdAt ?? dup.createdAt,
+              createdAt: createdAt,
               updatedAt: DateTime.now(),
-              firstName: nn(firstName),
-              lastName: nn(lastName),
-              jobTitle: nn(jobTitle),
-              company: nn(company),
-              formQuestion: nn(formQuestion),
-              dateAdded: nn(dateAdded),
+              firstName: nn(firstName), lastName: nn(lastName), jobTitle: nn(jobTitle),
+              company: nn(company), formQuestion: nn(formQuestion), dateAdded: nn(dateAdded),
             ));
             updated++;
           } else { skipped++; }
         } else {
-          await LeadService.instance.create(
-            name: name,
-            phone: nn(phone),
-            email: nn(email),
-            source: source,
-            createdAt: createdAt,
-            country: context.read<AppState>().selectedMarketId,
-            firstName: nn(firstName),
-            lastName: nn(lastName),
-            jobTitle: nn(jobTitle),
-            company: nn(company),
-            formQuestion: nn(formQuestion),
-            dateAdded: nn(dateAdded),
-          );
-          ok++;
+          newLeads.add(LeadModel(
+            id: uuid.v4(), name: name, status: LeadStatus.fresh,
+            phone: nn(phone), email: nn(email), source: source,
+            createdAt: createdAt, updatedAt: now, country: country,
+            firstName: nn(firstName), lastName: nn(lastName), jobTitle: nn(jobTitle),
+            company: nn(company), formQuestion: nn(formQuestion), dateAdded: nn(dateAdded),
+          ));
         }
       } catch (_) { failed++; }
+    }
+    // Bulk-send new leads in chunks (one request per chunk — far faster than per-row).
+    const chunkSize = 200;
+    for (var i = 0; i < newLeads.length; i += chunkSize) {
+      final part = newLeads.sublist(i, (i + chunkSize) > newLeads.length ? newLeads.length : (i + chunkSize));
+      try { ok += await LeadService.instance.importBatch(part); }
+      catch (_) { failed += part.length; }
     }
     if (!mounted) return;
     setState(() => _loading = false);
