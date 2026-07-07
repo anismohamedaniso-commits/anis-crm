@@ -45,6 +45,11 @@ class LeadCreate(BaseModel):
     notes: Optional[str] = None
     company: Optional[str] = None
     country: Optional[str] = Field('egypt', max_length=50)
+    first_name: Optional[str] = Field(None, max_length=200)
+    last_name: Optional[str] = Field(None, max_length=200)
+    job_title: Optional[str] = Field(None, max_length=200)
+    form_question: Optional[str] = Field(None, max_length=2000)
+    date_added: Optional[str] = Field(None, max_length=100)
 
 class LeadUpdate(BaseModel):
     name: Optional[str] = Field(None, max_length=200)
@@ -61,6 +66,11 @@ class LeadUpdate(BaseModel):
     notes: Optional[str] = None
     company: Optional[str] = None
     country: Optional[str] = Field(None, max_length=50)
+    first_name: Optional[str] = Field(None, max_length=200)
+    last_name: Optional[str] = Field(None, max_length=200)
+    job_title: Optional[str] = Field(None, max_length=200)
+    form_question: Optional[str] = Field(None, max_length=2000)
+    date_added: Optional[str] = Field(None, max_length=100)
 
 class ActivityCreate(BaseModel):
     lead_id: str = Field(..., min_length=1, max_length=100)
